@@ -26,22 +26,34 @@ def render_transaction_form():
     if st.button("Analyze Transaction"):
         ollama = OllamaService()
         
-        with st.spinner("Analyzing transaction..."):
+        # Create a placeholder for status messages
+        status_placeholder = st.empty()
+        progress_placeholder = st.empty()
+        
+        def update_status(message):
+            status_placeholder.info(message)
+        
+        with st.spinner("Initializing AI models..."):
             try:
-                classification = ollama.classify_transaction(description)
+                classification = ollama.classify_transaction(description, status_callback=update_status)
                 
                 if classification is None:
-                    st.error("""
-                    ⚠️ Could not connect to Ollama service. Please ensure:
+                    status_placeholder.error("""
+                    ⚠️ Could not process the transaction. Please ensure:
                     1. Ollama is installed and running
-                    2. Run 'ollama run llama2' in terminal
-                    3. Try again after Ollama is running
+                    2. At least one of these models is available:
+                       - mistral (recommended)
+                       - llama2:13b
+                       - neural-chat
+                       - llama2
+                    3. Run 'ollama pull <model_name>' to install a model
+                    4. Try again after the model is installed
                     """)
                     return
                 
                 if 'amount' in classification and classification['amount']:
                     st.session_state.classification = classification
-                    st.success(f"""
+                    progress_placeholder.success(f"""
                     ✅ Transaction analyzed successfully!
                     - Type: {classification['type']}
                     - Category: {classification['category']}
@@ -49,7 +61,7 @@ def render_transaction_form():
                     - Cycle: {classification['cycle']}
                     """)
                 else:
-                    st.warning("""
+                    status_placeholder.warning("""
                     ⚠️ Could not detect amount in the description.
                     Please include the amount in PLN or zł format, for example:
                     - 20zł
@@ -58,7 +70,7 @@ def render_transaction_form():
                     """)
             except Exception as e:
                 logger.error(f"Error during transaction analysis: {str(e)}")
-                st.error("An error occurred while analyzing the transaction. Please try again.")
+                status_placeholder.error(f"An error occurred while analyzing the transaction: {str(e)}")
     
     if 'classification' in st.session_state:
         class_data = st.session_state.classification

@@ -14,7 +14,12 @@ class OllamaService:
         self.base_url = "http://localhost:11434/api/generate"
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.models_to_try = ["mistral", "llama2:13b", "llama2"]
+        self.models_to_try = [
+            "mistral",
+            "llama2:13b",
+            "neural-chat",
+            "llama2"
+        ]
         
     def _check_ollama_running(self) -> bool:
         """Check if Ollama service is running."""
@@ -79,7 +84,7 @@ To install the {model} model:
         logger.error(error_msg)
         return None
 
-    def classify_transaction(self, description: str) -> Optional[Dict[str, Any]]:
+    def classify_transaction(self, description: str, status_callback=None) -> Optional[Dict[str, Any]]:
         """Classify a transaction description using Ollama."""
         logger.info(f"Processing transaction: {description}")
         
@@ -103,15 +108,22 @@ To install the {model} model:
         Return only the JSON, no other text.
         """
         
+        logger.info(f"Using prompt template:\n{prompt}")
+        
         def make_request():
             for model in self.models_to_try:
-                logger.info(f"Attempting to use model: {model}")
+                logger.info(f"Starting classification with model: {model}")
+                if status_callback:
+                    status_callback(f"Trying model: {model}...")
                 
                 if not self._check_model_available(model):
                     logger.warning(f"Model {model} is not available")
+                    if status_callback:
+                        status_callback(f"Model {model} not available, trying next model...")
                     continue
                 
                 try:
+                    logger.info(f"Sending request to model {model}")
                     response = requests.post(
                         self.base_url,
                         json={
@@ -123,9 +135,13 @@ To install the {model} model:
                     
                     if response.status_code == 200:
                         result = response.json()
+                        logger.info(f"Raw response from {model}:\n{result}")
+                        
                         try:
                             classified = json.loads(result['response'])
-                            logger.info(f"Successfully classified using model {model}: {classified}")
+                            logger.info(f"Successfully classified using {model}: {classified}")
+                            if status_callback:
+                                status_callback(f"Successfully processed with {model}")
                             
                             # Fallback amount extraction if AI doesn't detect it
                             if 'amount' not in classified or not classified['amount']:
@@ -137,9 +153,15 @@ To install the {model} model:
                             return classified
                         except json.JSONDecodeError as e:
                             logger.error(f"Failed to parse AI response from model {model}: {e}")
+                            if status_callback:
+                                status_callback(f"Failed to parse response from {model}, trying next model...")
                             continue
+                    else:
+                        logger.error(f"Request failed for model {model} with status {response.status_code}")
                 except Exception as e:
                     logger.warning(f"Failed with model {model}: {e}")
+                    if status_callback:
+                        status_callback(f"Error with {model}, trying next model...")
                     continue
             
             return None
