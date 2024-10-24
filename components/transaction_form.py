@@ -10,6 +10,21 @@ logger = logging.getLogger(__name__)
 def render_transaction_form():
     st.subheader("New Transaction")
     
+    # Add clear instructions for Ollama setup
+    st.markdown('''
+    ### How to use:
+    1. First, open a terminal and run: `ollama run mistral`
+    2. Keep that terminal window open
+    3. Then enter your transaction below
+    ''')
+    
+    # Check Ollama connection status
+    ollama = OllamaService()
+    if ollama._check_ollama_running():
+        st.success("✅ Connected to Ollama")
+    else:
+        st.error("❌ Ollama not connected. Please run 'ollama run mistral' in a terminal")
+    
     # Example transaction placeholder
     st.markdown("""
     💡 **Example formats:**
@@ -24,8 +39,6 @@ def render_transaction_form():
     )
     
     if st.button("Analyze Transaction"):
-        ollama = OllamaService()
-        
         # Create placeholders for status messages and progress
         status_placeholder = st.empty()
         progress_placeholder = st.empty()
