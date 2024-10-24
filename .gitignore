@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.streamlit/
+.replit
+replit.nix
+.pythonlibs/
+*.lock
+generated-icon.png
+pyproject.toml
