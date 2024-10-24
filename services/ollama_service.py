@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OllamaService:
-    def __init__(self, max_retries: int = 3, retry_delay: int = 2):
+    def __init__(self, max_retries: int = 5, retry_delay: int = 5):  # Increased retries and delay
         self.base_url = "http://localhost:11434/api/generate"
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -24,10 +24,20 @@ class OllamaService:
     def _check_ollama_running(self) -> bool:
         """Check if Ollama service is running."""
         try:
-            response = requests.get("http://localhost:11434/api/tags")
-            return response.status_code == 200
-        except requests.exceptions.ConnectionError:
-            return False
+            # First try the generate endpoint
+            response = requests.post(
+                self.base_url,
+                json={"model": "mistral", "prompt": "test", "stream": False},
+                timeout=5
+            )
+            return response.status_code in [200, 400, 404]  # 400/404 means service is up but model might not be ready
+        except requests.exceptions.RequestException:
+            try:
+                # Fallback to tags endpoint
+                response = requests.get("http://localhost:11434/api/tags", timeout=5)
+                return response.status_code == 200
+            except:
+                return False
 
     def _check_model_available(self, model: str) -> bool:
         """Check if specific model is available."""
@@ -87,6 +97,14 @@ To install the {model} model:
     def classify_transaction(self, description: str, status_callback=None) -> Optional[Dict[str, Any]]:
         """Classify a transaction description using Ollama."""
         logger.info(f"Processing transaction: {description}")
+        
+        # Check if Ollama is running and wait if needed
+        if not self._check_ollama_running():
+            if status_callback:
+                status_callback("🔄 Waiting for Ollama service to start...")
+            time.sleep(5)  # Give some time for service to initialize
+            if not self._check_ollama_running():
+                raise ConnectionError("Ollama service is not responding. Please ensure it's running with 'ollama run mistral'")
         
         prompt = f"""
         Analyze this Polish transaction description and return a JSON with:
