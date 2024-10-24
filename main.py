@@ -1,6 +1,7 @@
 import streamlit as st
 from components.transaction_form import render_transaction_form
 from components.dashboard import render_dashboard
+from components.manage_transactions import render_manage_transactions
 
 # Page config
 st.set_page_config(
@@ -13,7 +14,7 @@ st.set_page_config(
 def main():
     # Sidebar
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Dashboard", "Add Transaction"])
+    page = st.sidebar.radio("Go to", ["Dashboard", "Add Transaction", "Manage Transactions"])
     
     # Theme toggle
     theme = st.sidebar.select_slider(
@@ -27,6 +28,8 @@ def main():
     
     if page == "Dashboard":
         render_dashboard()
+    elif page == "Manage Transactions":
+        render_manage_transactions()
     else:
         render_transaction_form()
 
