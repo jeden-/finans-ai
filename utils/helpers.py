@@ -1,7 +1,7 @@
 import pandas as pd
 
 def format_currency(amount):
-    return f"${amount:,.2f}"
+    return f"{amount:,.2f} PLN"
 
 def prepare_transaction_data(transactions):
     df = pd.DataFrame(transactions)
