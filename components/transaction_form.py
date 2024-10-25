@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime
-from services.ollama_service import OllamaService
+from services.openai_service import OpenAIService
 from models.transaction import Transaction
 from utils.helpers import format_currency
 import logging
@@ -9,21 +9,6 @@ logger = logging.getLogger(__name__)
 
 def render_transaction_form():
     st.subheader("New Transaction")
-    
-    # Add clear instructions for Ollama setup
-    st.markdown('''
-    ### How to use:
-    1. First, open a terminal and run: `ollama run mistral`
-    2. Keep that terminal window open
-    3. Then enter your transaction below
-    ''')
-    
-    # Check Ollama connection status
-    ollama = OllamaService()
-    if ollama._check_ollama_running():
-        st.success("✅ Connected to Ollama")
-    else:
-        st.error("❌ Ollama not connected. Please run 'ollama run mistral' in a terminal")
     
     # Example transaction placeholder
     st.markdown("""
@@ -47,21 +32,15 @@ def render_transaction_form():
         
         def update_status(message):
             # Determine progress based on message content
-            if "Initializing" in message:
-                progress = 0.1
-                status_placeholder.info(f"🔄 {message}")
-            elif "Trying model" in message:
-                progress = 0.3
-                status_placeholder.warning(f"🤖 {message}")
-            elif "not available" in message:
-                progress = 0.4
-                status_placeholder.warning(f"⚠️ {message}")
-            elif "processing" in message:
+            if "Processing" in message:
                 progress = 0.6
                 status_placeholder.info(f"⚙️ {message}")
-            elif "Successfully processed" in message:
+            elif "Successfully" in message:
                 progress = 1.0
                 status_placeholder.success(f"✅ {message}")
+            elif "Error" in message:
+                progress = 0
+                status_placeholder.error(f"❌ {message}")
             else:
                 progress = 0.5
                 status_placeholder.info(f"ℹ️ {message}")
@@ -71,20 +50,11 @@ def render_transaction_form():
         update_status("Initializing AI analysis...")
         
         try:
-            classification = ollama.classify_transaction(description, status_callback=update_status)
+            ai_service = OpenAIService()
+            classification = ai_service.classify_transaction(description, status_callback=update_status)
             
             if classification is None:
-                status_placeholder.error("""
-                ⚠️ Could not process the transaction. Please ensure:
-                1. Ollama is installed and running
-                2. At least one of these models is available:
-                   - mistral (recommended)
-                   - llama2:13b
-                   - neural-chat
-                   - llama2
-                3. Run 'ollama pull <model_name>' to install a model
-                4. Try again after the model is installed
-                """)
+                status_placeholder.error("❌ Could not process the transaction. Please try again.")
                 progress_bar.progress(0)
                 return
             
@@ -130,7 +100,7 @@ def render_transaction_form():
                            index=0 if class_data['type'] == 'income' else 1)
         category = st.text_input("Category", value=class_data['category'])
         cycle = st.selectbox("Cycle", ["none", "daily", "weekly", "monthly", "yearly"],
-                           index=["none", "daily", "weekly", "monthly", "yearly"].index(class_data['cycle']))
+                          index=["none", "daily", "weekly", "monthly", "yearly"].index(class_data['cycle']))
         
         if cycle != "none":
             col1, col2 = st.columns(2)
