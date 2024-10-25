@@ -15,6 +15,10 @@ st.set_page_config(
 )
 
 def main():
+    # Initialize session state for AI model choice if not exists
+    if 'ai_model' not in st.session_state:
+        st.session_state.ai_model = "OpenAI"
+    
     # Sidebar
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
@@ -29,6 +33,18 @@ def main():
         options=["Light", "Dark"],
         value="Dark"
     )
+    
+    # Settings section in sidebar
+    with st.sidebar:
+        st.divider()
+        st.subheader("Settings")
+        model_choice = st.selectbox(
+            "AI Model",
+            ["OpenAI", "Ollama"],
+            index=0 if st.session_state.ai_model == "OpenAI" else 1,
+            help="Choose the AI model for transaction analysis"
+        )
+        st.session_state.ai_model = model_choice
     
     # Main content
     st.title("Personal Finance Manager")

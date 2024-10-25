@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime, timedelta, date
 from services.openai_service import OpenAIService
+from services.ollama_service import OllamaService
 from models.transaction import Transaction
 from utils.helpers import format_currency
 from components.manage_categories import render_category_selector
@@ -51,7 +52,8 @@ def render_transaction_form():
         update_status("Initializing AI analysis...")
         
         try:
-            ai_service = OpenAIService()
+            # Use the selected AI model
+            ai_service = OpenAIService() if st.session_state.ai_model == "OpenAI" else OllamaService()
             classification = ai_service.classify_transaction(description, status_callback=update_status)
             
             if classification is None:

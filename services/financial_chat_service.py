@@ -1,9 +1,11 @@
 from typing import Dict, Any, Optional, List
 import logging
 from services.rag_service import RAGService
-from openai import OpenAI
+from services.openai_service import OpenAIService
+from services.ollama_service import OllamaService
 from models.transaction import Transaction
 from utils.analytics import get_spending_insights, analyze_spending_patterns
+import streamlit as st
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -11,7 +13,8 @@ logger = logging.getLogger(__name__)
 class FinancialChatService:
     def __init__(self):
         self.rag_service = RAGService()
-        self.client = OpenAI()
+        # Initialize AI service based on selected model
+        self.ai_service = OpenAIService() if st.session_state.ai_model == "OpenAI" else OllamaService()
         self.transaction_model = Transaction()
 
     def get_chat_response(self, query: str) -> Dict[str, Any]:
@@ -30,8 +33,9 @@ class FinancialChatService:
                 insights = {}
                 patterns = {}
 
-            # Prepare the system message with financial expertise
-            system_message = """You are an expert financial advisor assistant. Your role is to:
+            # Create messages for the chat
+            messages = [
+                {"role": "system", "content": """You are an expert financial advisor assistant. Your role is to:
 1. Analyze transaction data and provide specific insights
 2. Answer questions about spending patterns and financial habits
 3. Give practical financial advice based on the user's actual transaction history
@@ -43,11 +47,7 @@ When suggesting improvements or changes:
 - Be specific and actionable
 - Reference actual transaction data when available
 - Consider the user's spending patterns and habits
-- Explain the potential benefits of your suggestions"""
-
-            # Create messages for the chat
-            messages = [
-                {"role": "system", "content": system_message},
+- Explain the potential benefits of your suggestions"""},
                 {"role": "user", "content": f"""Using this context about the user's transactions and financial history:
 
 {context}
@@ -61,16 +61,20 @@ Additional insights:
 Question: {query}"""}
             ]
 
-            # Get response from OpenAI
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=500
-            )
+            # Get response from selected AI model
+            if isinstance(self.ai_service, OpenAIService):
+                response = self.ai_service.client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                response_text = response.choices[0].message.content
+            else:
+                response_text = self.ai_service.chat_about_transactions(messages, context)
 
             return {
-                'response': response.choices[0].message.content,
+                'response': response_text,
                 'context_used': context,
                 'relevant_insights': insights
             }
