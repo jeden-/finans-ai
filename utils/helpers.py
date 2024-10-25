@@ -85,11 +85,14 @@ def prepare_export_data(df):
     # Format currency amounts
     export_df['amount'] = export_df['amount'].apply(lambda x: f"{x:,.2f} PLN")
     
-    # Format dates
+    # Format dates - Handle each date column carefully
     date_columns = ['created_at', 'start_date', 'end_date', 'due_date']
     for col in date_columns:
         if col in export_df.columns:
-            export_df[col] = export_df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+            # Handle potentially missing or invalid dates
+            export_df[col] = pd.to_datetime(export_df[col], errors='coerce')
+            # Format datetime values, replacing NaT with empty string
+            export_df[col] = export_df[col].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if pd.notnull(x) else '')
     
     # Select and rename columns for export
     columns_map = {
@@ -116,33 +119,46 @@ def export_to_excel(df):
     """Export transactions to Excel format with formatting."""
     export_df = prepare_export_data(df)
     
-    # Create Excel writer object
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        export_df.to_excel(writer, sheet_name='Transactions', index=False)
-        
-        # Get workbook and worksheet objects
-        workbook = writer.book
-        worksheet = writer.sheets['Transactions']
-        
-        # Add formats
-        header_format = workbook.add_format({
-            'bold': True,
-            'text_wrap': True,
-            'valign': 'top',
-            'border': 1
-        })
-        
-        # Format headers
-        for col_num, value in enumerate(export_df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
-            
-        # Adjust column widths
-        for i, col in enumerate(export_df.columns):
-            max_length = max(
-                export_df[col].astype(str).apply(len).max(),
-                len(col)
-            )
-            worksheet.set_column(i, i, max_length + 2)
+    # Create Excel writer object using xlsxwriter engine
+    buffer = io.BytesIO()
+    writer = pd.ExcelWriter(
+        buffer,
+        engine='xlsxwriter',
+        engine_kwargs={'options': {'in_memory': True}}
+    )
     
-    return output.getvalue()
+    # Write dataframe to excel
+    export_df.to_excel(writer, sheet_name='Transactions', index=False)
+    
+    # Get workbook and worksheet objects
+    workbook = writer.book
+    worksheet = writer.sheets['Transactions']
+    
+    # Add formats
+    header_format = workbook.add_format({
+        'bold': True,
+        'text_wrap': True,
+        'valign': 'top',
+        'border': 1
+    })
+    
+    # Format headers
+    for col_num, value in enumerate(export_df.columns.values):
+        worksheet.write(0, col_num, value, header_format)
+        
+    # Adjust column widths
+    for i, col in enumerate(export_df.columns):
+        max_length = max(
+            export_df[col].astype(str).apply(len).max(),
+            len(col)
+        )
+        worksheet.set_column(i, i, max_length + 2)
+    
+    # Save the workbook
+    writer.close()
+    
+    # Get the value of the BytesIO buffer
+    excel_data = buffer.getvalue()
+    buffer.close()
+    
+    return excel_data
