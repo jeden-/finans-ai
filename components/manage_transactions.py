@@ -1,7 +1,7 @@
 import streamlit as st
 from models.transaction import Transaction
 from utils.helpers import format_currency
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import json
 
 def render_manage_transactions():
@@ -53,7 +53,7 @@ def render_manage_transactions():
                 st.caption(f"From: {tx['start_date']}")
                 if tx['end_date']:
                     st.caption(f"To: {tx['end_date']}")
-                if tx['cycle'] == 'yearly' and tx['due_date']:
+                if tx['cycle'] in ["monthly", "yearly"] and tx['due_date']:
                     st.caption(f"Due: {tx['due_date']}")
         
         with col6:
@@ -83,21 +83,23 @@ def edit_transaction_form(transaction, transaction_model):
         cycle = st.selectbox("Cycle", ["none", "daily", "weekly", "monthly", "yearly"],
                            index=["none", "daily", "weekly", "monthly", "yearly"].index(transaction['cycle']))
         
+        today = date.today()
         if cycle != "none":
             col1, col2 = st.columns(2)
             with col1:
                 start_date = st.date_input("Start Date", 
-                                         value=transaction['start_date'] if transaction['start_date'] else datetime.now())
+                                       value=transaction['start_date'] if transaction['start_date'] else today)
             with col2:
+                default_end_date = (start_date if isinstance(start_date, date) else today) + timedelta(days=365 * 5)
                 end_date = st.date_input("End Date", 
-                                       value=transaction['end_date'] if transaction['end_date'] else start_date + timedelta(days=365 * 5))
+                                     value=transaction['end_date'] if transaction['end_date'] else default_end_date)
             
-            # Show due_date field only for yearly transactions
-            if cycle == "yearly":
+            # Show due_date field for both monthly and yearly transactions
+            if cycle in ["monthly", "yearly"]:
                 due_date = st.date_input(
-                    "Due Date (yearly payment date)",
+                    "Due Date (payment date)",
                     value=transaction['due_date'] if transaction['due_date'] else start_date,
-                    help="The date when the yearly payment is due"
+                    help="The date when the monthly/yearly payment is due"
                 )
             else:
                 due_date = None
@@ -108,6 +110,15 @@ def edit_transaction_form(transaction, transaction_model):
         
         if st.form_submit_button("Save Changes"):
             try:
+                # Convert Streamlit date_input values to Python date objects
+                start_date = start_date if isinstance(start_date, date) else None
+                end_date = end_date if isinstance(end_date, date) else None
+                due_date = due_date if isinstance(due_date, date) else None
+                
+                # Ensure category is not None
+                if not category:
+                    raise ValueError("Category cannot be empty")
+                    
                 transaction_model.update_transaction(
                     transaction['id'],
                     {

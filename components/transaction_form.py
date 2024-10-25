@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from services.openai_service import OpenAIService
 from models.transaction import Transaction
 from utils.helpers import format_currency
@@ -103,7 +103,7 @@ def render_transaction_form():
                           index=["none", "daily", "weekly", "monthly", "yearly"].index(class_data['cycle']))
         
         # Set default dates
-        today = datetime.now().date()
+        today = date.today()
         default_end_date = today + timedelta(days=365 * 5)  # 5 years from today
         
         if cycle != "none":
@@ -113,12 +113,14 @@ def render_transaction_form():
             with col2:
                 end_date = st.date_input("End Date", value=default_end_date)
                 
-            # Show due_date field only for yearly transactions
-            if cycle == "yearly":
+            # Show due_date field for monthly and yearly transactions
+            if cycle in ["monthly", "yearly"]:
+                # For monthly transactions, default to same day of month as start_date
+                default_due_date = start_date
                 due_date = st.date_input(
-                    "Due Date (yearly payment date)",
-                    value=start_date,
-                    help="The date when the yearly payment is due"
+                    "Due Date (payment date)",
+                    value=default_due_date,
+                    help="The date when the monthly/yearly payment is due"
                 )
             else:
                 due_date = None
@@ -130,6 +132,15 @@ def render_transaction_form():
         if st.button("Save Transaction"):
             transaction = Transaction()
             try:
+                # Convert Streamlit date_input values to Python date objects
+                start_date = start_date if isinstance(start_date, date) else None
+                end_date = end_date if isinstance(end_date, date) else None
+                due_date = due_date if isinstance(due_date, date) else None
+                
+                # Ensure category is not None
+                if not category:
+                    raise ValueError("Category cannot be empty")
+                
                 transaction.create_transaction(
                     description=description,
                     amount=amount,
@@ -153,7 +164,7 @@ def render_transaction_form():
                 if cycle != "none":
                     st.write(f"- Start Date: {start_date}")
                     st.write(f"- End Date: {end_date}")
-                    if cycle == "yearly":
+                    if cycle in ["monthly", "yearly"]:
                         st.write(f"- Due Date: {due_date}")
                 
             except Exception as e:

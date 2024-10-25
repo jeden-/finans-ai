@@ -14,7 +14,7 @@ class Transaction:
     def create_transaction(self, description: str, amount: float, type: str, 
                          category: str, cycle: str, start_date: Optional[date] = None, 
                          end_date: Optional[date] = None, due_date: Optional[date] = None,
-                         metadata: Dict[str, Any] = None):
+                         metadata: Optional[Dict[str, Any]] = None):
         """Create a new transaction with support for recurring amounts."""
         logger.info(f"Creating transaction: {description}, amount: {amount}")
         
@@ -27,8 +27,8 @@ class Transaction:
             if not end_date:
                 end_date = start_date + timedelta(days=365 * 5)
             
-            # For yearly transactions, set due_date if not provided
-            if cycle == "yearly" and not due_date:
+            # For monthly and yearly transactions, set due_date if not provided
+            if cycle in ["monthly", "yearly"] and not due_date:
                 due_date = start_date
 
         query = """
