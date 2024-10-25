@@ -23,7 +23,7 @@ def main():
     if 'openai_model' not in st.session_state:
         st.session_state.openai_model = "gpt-3.5-turbo"
     
-    # Sidebar
+    # Sidebar navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Go to", 
@@ -31,73 +31,65 @@ def main():
          "Manage Categories", "Budget Planning", "Chat Assistant"]
     )
     
-    # Settings section in sidebar
-    with st.sidebar:
-        st.divider()
-        st.subheader("Settings")
-        
-        # Appearance settings
-        st.write("##### Appearance")
-        theme = st.select_slider(
-            "Theme",
-            options=["Light", "Dark"],
-            value="Dark"
-        )
-        
-        # AI Model settings
-        st.write("##### AI Configuration")
-        
-        # Create tabs for different AI services
-        ai_tabs = st.tabs(["OpenAI", "Ollama"])
+    # Settings button in top right corner
+    col1, col2 = st.columns([15, 1])  # Create columns for layout
+    with col2:
+        if st.button("⚙️", help="Settings"):
+            st.session_state.show_settings = not st.session_state.get('show_settings', False)
 
-        with ai_tabs[0]:  # OpenAI tab
-            # API Key input
-            openai_key = st.text_input(
-                "OpenAI API Key",
-                type="password",
-                value=os.environ.get("OPENAI_API_KEY", ""),
-                help="Enter your OpenAI API key here"
-            )
-            if openai_key:
-                st.session_state.openai_api_key = openai_key
-                os.environ["OPENAI_API_KEY"] = openai_key
+    # Show settings modal if enabled
+    if st.session_state.get('show_settings', False):
+        with st.sidebar:
+            st.markdown("### ⚙️ Settings")
+            with st.expander("Appearance", expanded=True):
+                theme = st.select_slider(
+                    "Theme",
+                    options=["Light", "Dark"],
+                    value="Dark"
+                )
                 
-            # Model selection
-            openai_model = st.selectbox(
-                "Model",
-                ["gpt-3.5-turbo", "gpt-4"],
-                index=0,
-                help="Select OpenAI model to use"
-            )
-            st.session_state.openai_model = openai_model
-
-        with ai_tabs[1]:  # Ollama tab
-            # Get available Ollama models
-            try:
-                response = requests.get("http://localhost:11434/api/tags")
-                if response.status_code == 200:
-                    available_models = [model['name'] for model in response.json()['models']]
+            with st.expander("AI Configuration", expanded=True):
+                ai_service = st.selectbox(
+                    "AI Service",
+                    ["OpenAI", "Ollama"],
+                    index=0 if st.session_state.get('ai_model') == "OpenAI" else 1
+                )
+                
+                if ai_service == "OpenAI":
+                    openai_key = st.text_input(
+                        "API Key",
+                        type="password",
+                        value=os.environ.get("OPENAI_API_KEY", ""),
+                        help="Enter your OpenAI API key"
+                    )
+                    if openai_key:
+                        st.session_state.openai_api_key = openai_key
+                        os.environ["OPENAI_API_KEY"] = openai_key
+                        
+                    model = st.selectbox(
+                        "Model",
+                        ["gpt-3.5-turbo", "gpt-4"],
+                        index=0
+                    )
+                    st.session_state.openai_model = model
                 else:
-                    available_models = ["llama2"]
-            except:
-                available_models = ["llama2"]
+                    try:
+                        response = requests.get("http://localhost:11434/api/tags")
+                        available_models = [model['name'] for model in response.json()['models']] if response.status_code == 200 else ["llama2"]
+                    except:
+                        available_models = ["llama2"]
+                        
+                    model = st.selectbox(
+                        "Model",
+                        options=available_models,
+                        index=0
+                    )
+                    st.session_state.ollama_model = model
                 
-            ollama_model = st.selectbox(
-                "Model",
-                options=available_models,
-                index=0,
-                help="Select Ollama model to use"
-            )
-            st.session_state.ollama_model = ollama_model
+                st.session_state.ai_model = ai_service
 
-        # AI service selection
-        ai_service = st.selectbox(
-            "Active AI Service",
-            ["OpenAI", "Ollama"],
-            index=0 if st.session_state.get('ai_model') == "OpenAI" else 1,
-            help="Choose which AI service to use"
-        )
-        st.session_state.ai_model = ai_service
+            if st.button("Close Settings"):
+                st.session_state.show_settings = False
     
     # Main content
     st.title("Personal Finance Manager")
