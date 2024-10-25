@@ -106,7 +106,7 @@ def edit_transaction_form(transaction, transaction_model):
                 )
                 st.success("✅ Transaction updated successfully!")
                 del st.session_state.editing_transaction
-                st.experimental_rerun()
+                st.rerun()  # Updated from st.experimental_rerun()
             except Exception as e:
                 st.error(f"❌ Error updating transaction: {str(e)}")
 
@@ -116,6 +116,6 @@ def delete_transaction(transaction_model, transaction_id):
         transaction_model.delete_transaction(transaction_id)
         st.success("✅ Transaction deleted successfully!")
         st.session_state.pop('delete_confirm', None)
-        st.experimental_rerun()
+        st.rerun()  # Updated from st.experimental_rerun()
     except Exception as e:
         st.error(f"❌ Error deleting transaction: {str(e)}")
