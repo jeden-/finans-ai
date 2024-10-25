@@ -2,6 +2,7 @@ import streamlit as st
 from models.transaction import Transaction
 from utils.helpers import format_currency, prepare_export_data, export_to_csv, export_to_excel
 from datetime import datetime, timedelta, date
+from components.manage_categories import render_category_selector
 import json
 import pandas as pd
 
@@ -146,7 +147,15 @@ def edit_transaction_form(transaction, transaction_model):
         amount = st.number_input("Amount", value=float(transaction['amount']), min_value=0.01, step=0.01)
         type = st.selectbox("Type", ["income", "expense"], 
                            index=0 if transaction['type'] == 'income' else 1)
-        category = st.text_input("Category", value=transaction['category'])
+        
+        # Use the new category selector component
+        category = render_category_selector(
+            key=f"edit_category_{transaction['id']}",
+            help_text="Select an existing category or create a new one"
+        )
+        if not category:
+            category = transaction['category']
+            
         cycle = st.selectbox("Cycle", ["none", "daily", "weekly", "monthly", "yearly"],
                            index=["none", "daily", "weekly", "monthly", "yearly"].index(transaction['cycle']))
         

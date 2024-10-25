@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date
 from services.openai_service import OpenAIService
 from models.transaction import Transaction
 from utils.helpers import format_currency
+from components.manage_categories import render_category_selector
 import logging
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,15 @@ def render_transaction_form():
         
         type = st.selectbox("Type", ["income", "expense"], 
                            index=0 if class_data['type'] == 'income' else 1)
-        category = st.text_input("Category", value=class_data['category'])
+        
+        # Use the new category selector component
+        category = render_category_selector(
+            key="transaction_category",
+            help_text="Select an existing category or create a new one"
+        )
+        if not category:
+            category = class_data['category']
+            
         cycle = st.selectbox("Cycle", ["none", "daily", "weekly", "monthly", "yearly"],
                           index=["none", "daily", "weekly", "monthly", "yearly"].index(class_data['cycle']))
         
