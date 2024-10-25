@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "chromadb>=0.5.15",
+    "faiss-cpu>=1.9.0",
     "openai>=1.52.2",
     "openpyxl>=3.1.5",
     "pandas>=2.2.3",
@@ -11,6 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "requests>=2.32.3",
     "scikit-learn>=1.5.2",
+    "sentence-transformers>=3.2.1",
     "statsmodels>=0.14.4",
     "streamlit>=1.39.0",
     "xlsxwriter>=3.2.0",

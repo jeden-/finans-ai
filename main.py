@@ -4,6 +4,7 @@ from components.dashboard import render_dashboard
 from components.manage_transactions import render_manage_transactions
 from components.manage_categories import render_manage_categories
 from components.manage_budgets import render_budget_planning
+from components.chat_assistant import render_chat_assistant
 
 # Page config
 st.set_page_config(
@@ -19,7 +20,7 @@ def main():
     page = st.sidebar.radio(
         "Go to", 
         ["Dashboard", "Add Transaction", "Manage Transactions", 
-         "Manage Categories", "Budget Planning"]
+         "Manage Categories", "Budget Planning", "Chat Assistant"]
     )
     
     # Theme toggle
@@ -40,6 +41,8 @@ def main():
         render_manage_categories()
     elif page == "Budget Planning":
         render_budget_planning()
+    elif page == "Chat Assistant":
+        render_chat_assistant()
     else:
         render_transaction_form()
 
