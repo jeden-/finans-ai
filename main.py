@@ -1,4 +1,6 @@
 import streamlit as st
+import os
+import requests
 from components.transaction_form import render_transaction_form
 from components.dashboard import render_dashboard
 from components.manage_transactions import render_manage_transactions
@@ -27,23 +29,57 @@ def main():
          "Manage Categories", "Budget Planning", "Chat Assistant"]
     )
     
-    # Theme toggle
-    theme = st.sidebar.select_slider(
-        "Theme",
-        options=["Light", "Dark"],
-        value="Dark"
-    )
-    
     # Settings section in sidebar
     with st.sidebar:
         st.divider()
         st.subheader("Settings")
+        
+        # Appearance settings
+        st.write("##### Appearance")
+        theme = st.select_slider(
+            "Theme",
+            options=["Light", "Dark"],
+            value="Dark"
+        )
+        
+        # AI Model settings
+        st.write("##### AI Configuration")
         model_choice = st.selectbox(
-            "AI Model",
+            "AI Service",
             ["OpenAI", "Ollama"],
             index=0 if st.session_state.ai_model == "OpenAI" else 1,
-            help="Choose the AI model for transaction analysis"
+            help="Choose the AI service for transaction analysis"
         )
+        
+        if model_choice == "OpenAI":
+            openai_key = st.text_input(
+                "OpenAI API Key",
+                type="password",
+                value=st.secrets.get("OPENAI_API_KEY", ""),
+                help="Enter your OpenAI API key"
+            )
+            if openai_key:
+                st.session_state.openai_api_key = openai_key
+                os.environ["OPENAI_API_KEY"] = openai_key
+        else:
+            # Get available Ollama models
+            try:
+                response = requests.get("http://localhost:11434/api/tags")
+                if response.status_code == 200:
+                    available_models = [model['name'] for model in response.json()['models']]
+                else:
+                    available_models = ["llama2"]  # default fallback
+            except:
+                available_models = ["llama2"]  # default fallback
+                
+            ollama_model = st.selectbox(
+                "Ollama Model",
+                options=available_models,
+                index=0,
+                help="Select the Ollama model to use"
+            )
+            st.session_state.ollama_model = ollama_model
+        
         st.session_state.ai_model = model_choice
     
     # Main content

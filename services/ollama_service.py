@@ -1,6 +1,7 @@
 import requests
 import json
 import logging
+import streamlit as st
 from typing import Optional, Dict, Any
 
 # Configure logging
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 class OllamaService:
     def __init__(self):
         self.base_url = "http://localhost:11434"
+        self.model = st.session_state.get('ollama_model', 'llama2')
         
     def classify_transaction(self, description: str, status_callback=None) -> Optional[Dict[str, Any]]:
         """Classify a transaction description using Ollama."""
@@ -22,7 +24,7 @@ class OllamaService:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json={
-                    "model": "llama2",
+                    "model": self.model,
                     "prompt": f"""Analyze this Polish transaction description and return a JSON with:
 - type: "income" or "expense"
 - cycle: "none", "daily", "weekly", "monthly", or "yearly"
@@ -69,7 +71,7 @@ Return only the JSON, no other text.""",
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json={
-                    "model": "llama2",
+                    "model": self.model,
                     "prompt": f"""You are an expert financial advisor assistant. 
 Context about the user's transactions:
 {context}
