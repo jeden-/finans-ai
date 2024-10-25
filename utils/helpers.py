@@ -1,7 +1,10 @@
 import pandas as pd
 
 def format_currency(amount):
-    return f"{amount:,.2f} PLN"
+    # Format number with thousands separator and 2 decimal places
+    # Convert decimal point to comma
+    formatted = f"{amount:,.2f}".replace(",", " ").replace(".", ",")
+    return f"{formatted} zł"
 
 def prepare_transaction_data(transactions):
     df = pd.DataFrame(transactions)
