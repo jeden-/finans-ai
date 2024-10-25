@@ -1,7 +1,7 @@
 import streamlit as st
 from models.transaction import Transaction
 from utils.helpers import format_currency
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 def render_manage_transactions():
@@ -53,6 +53,8 @@ def render_manage_transactions():
                 st.caption(f"From: {tx['start_date']}")
                 if tx['end_date']:
                     st.caption(f"To: {tx['end_date']}")
+                if tx['cycle'] == 'yearly' and tx['due_date']:
+                    st.caption(f"Due: {tx['due_date']}")
         
         with col6:
             if st.button("📝", key=f"edit_{tx['id']}", help="Edit transaction"):
@@ -82,13 +84,27 @@ def edit_transaction_form(transaction, transaction_model):
                            index=["none", "daily", "weekly", "monthly", "yearly"].index(transaction['cycle']))
         
         if cycle != "none":
-            start_date = st.date_input("Start Date", 
-                                     value=transaction['start_date'] if transaction['start_date'] else datetime.now())
-            end_date = st.date_input("End Date", 
-                                   value=transaction['end_date'] if transaction['end_date'] else None)
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("Start Date", 
+                                         value=transaction['start_date'] if transaction['start_date'] else datetime.now())
+            with col2:
+                end_date = st.date_input("End Date", 
+                                       value=transaction['end_date'] if transaction['end_date'] else start_date + timedelta(days=365 * 5))
+            
+            # Show due_date field only for yearly transactions
+            if cycle == "yearly":
+                due_date = st.date_input(
+                    "Due Date (yearly payment date)",
+                    value=transaction['due_date'] if transaction['due_date'] else start_date,
+                    help="The date when the yearly payment is due"
+                )
+            else:
+                due_date = None
         else:
             start_date = None
             end_date = None
+            due_date = None
         
         if st.form_submit_button("Save Changes"):
             try:
@@ -101,12 +117,13 @@ def edit_transaction_form(transaction, transaction_model):
                         'category': category,
                         'cycle': cycle,
                         'start_date': start_date,
-                        'end_date': end_date
+                        'end_date': end_date,
+                        'due_date': due_date
                     }
                 )
                 st.success("✅ Transaction updated successfully!")
                 del st.session_state.editing_transaction
-                st.rerun()  # Updated from st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"❌ Error updating transaction: {str(e)}")
 
@@ -116,6 +133,6 @@ def delete_transaction(transaction_model, transaction_id):
         transaction_model.delete_transaction(transaction_id)
         st.success("✅ Transaction deleted successfully!")
         st.session_state.pop('delete_confirm', None)
-        st.rerun()  # Updated from st.experimental_rerun()
+        st.rerun()
     except Exception as e:
         st.error(f"❌ Error deleting transaction: {str(e)}")

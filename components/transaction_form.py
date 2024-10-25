@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 from services.openai_service import OpenAIService
 from models.transaction import Transaction
 from utils.helpers import format_currency
@@ -102,15 +102,30 @@ def render_transaction_form():
         cycle = st.selectbox("Cycle", ["none", "daily", "weekly", "monthly", "yearly"],
                           index=["none", "daily", "weekly", "monthly", "yearly"].index(class_data['cycle']))
         
+        # Set default dates
+        today = datetime.now().date()
+        default_end_date = today + timedelta(days=365 * 5)  # 5 years from today
+        
         if cycle != "none":
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input("Start Date", datetime.now())
+                start_date = st.date_input("Start Date", value=today)
             with col2:
-                end_date = st.date_input("End Date", datetime.now())
+                end_date = st.date_input("End Date", value=default_end_date)
+                
+            # Show due_date field only for yearly transactions
+            if cycle == "yearly":
+                due_date = st.date_input(
+                    "Due Date (yearly payment date)",
+                    value=start_date,
+                    help="The date when the yearly payment is due"
+                )
+            else:
+                due_date = None
         else:
             start_date = None
             end_date = None
+            due_date = None
         
         if st.button("Save Transaction"):
             transaction = Transaction()
@@ -122,7 +137,8 @@ def render_transaction_form():
                     category=category,
                     cycle=cycle,
                     start_date=start_date,
-                    end_date=end_date
+                    end_date=end_date,
+                    due_date=due_date
                 )
                 st.success("✅ Transaction saved successfully!")
                 st.session_state.pop('classification', None)
@@ -137,6 +153,8 @@ def render_transaction_form():
                 if cycle != "none":
                     st.write(f"- Start Date: {start_date}")
                     st.write(f"- End Date: {end_date}")
+                    if cycle == "yearly":
+                        st.write(f"- Due Date: {due_date}")
                 
             except Exception as e:
                 logger.error(f"Error saving transaction: {str(e)}")

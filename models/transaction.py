@@ -13,25 +13,34 @@ class Transaction:
 
     def create_transaction(self, description: str, amount: float, type: str, 
                          category: str, cycle: str, start_date: Optional[date] = None, 
-                         end_date: Optional[date] = None, metadata: Dict[str, Any] = None):
+                         end_date: Optional[date] = None, due_date: Optional[date] = None,
+                         metadata: Dict[str, Any] = None):
         """Create a new transaction with support for recurring amounts."""
         logger.info(f"Creating transaction: {description}, amount: {amount}")
         
-        if cycle != "none" and start_date:
-            # Set default end_date to 5 years from start if not specified
+        if cycle != "none":
+            # Set default start_date to today if not provided
+            if not start_date:
+                start_date = date.today()
+            
+            # Set default end_date to 5 years from start if not provided
             if not end_date:
                 end_date = start_date + timedelta(days=365 * 5)
+            
+            # For yearly transactions, set due_date if not provided
+            if cycle == "yearly" and not due_date:
+                due_date = start_date
 
         query = """
         INSERT INTO transactions 
-        (description, amount, type, category, cycle, start_date, end_date, created_at, transaction_text, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        (description, amount, type, category, cycle, start_date, end_date, due_date, created_at, transaction_text, metadata)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """
         
         params = (
             description, amount, type, category, cycle, 
-            start_date, end_date, datetime.now(), 
+            start_date, end_date, due_date, datetime.now(), 
             description,  # Store original text
             json.dumps(metadata) if metadata else None
         )
@@ -120,7 +129,7 @@ class Transaction:
         logger.info(f"Updating transaction {transaction_id} with data: {data}")
         valid_fields = [
             'description', 'amount', 'type', 'category', 
-            'cycle', 'start_date', 'end_date', 'metadata'
+            'cycle', 'start_date', 'end_date', 'due_date', 'metadata'
         ]
         
         # Filter valid fields and build query

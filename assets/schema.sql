@@ -15,6 +15,7 @@ CREATE TABLE transactions (
     cycle VARCHAR(10) NOT NULL,
     start_date DATE,
     end_date DATE,
+    due_date DATE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     transaction_text TEXT,
     metadata JSONB
