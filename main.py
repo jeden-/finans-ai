@@ -3,6 +3,7 @@ from components.transaction_form import render_transaction_form
 from components.dashboard import render_dashboard
 from components.manage_transactions import render_manage_transactions
 from components.manage_categories import render_manage_categories
+from components.manage_budgets import render_budget_planning
 
 # Page config
 st.set_page_config(
@@ -17,7 +18,8 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Go to", 
-        ["Dashboard", "Add Transaction", "Manage Transactions", "Manage Categories"]
+        ["Dashboard", "Add Transaction", "Manage Transactions", 
+         "Manage Categories", "Budget Planning"]
     )
     
     # Theme toggle
@@ -36,6 +38,8 @@ def main():
         render_manage_transactions()
     elif page == "Manage Categories":
         render_manage_categories()
+    elif page == "Budget Planning":
+        render_budget_planning()
     else:
         render_transaction_form()
 
