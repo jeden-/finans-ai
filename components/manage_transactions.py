@@ -1,8 +1,9 @@
 import streamlit as st
 from models.transaction import Transaction
-from utils.helpers import format_currency
+from utils.helpers import format_currency, prepare_export_data, export_to_csv, export_to_excel
 from datetime import datetime, timedelta, date
 import json
+import pandas as pd
 
 def render_manage_transactions():
     st.subheader("Manage Transactions")
@@ -17,6 +18,17 @@ def render_manage_transactions():
         st.info("No transactions found. Start by adding some transactions!")
         return
     
+    # Create tabs for management and export
+    manage_tab, export_tab = st.tabs(["Manage Transactions", "Export Data"])
+    
+    with manage_tab:
+        render_transaction_management(transactions, transaction_model)
+    
+    with export_tab:
+        render_export_section(transactions)
+
+def render_transaction_management(transactions, transaction_model):
+    """Render the transaction management interface."""
     # Create a form for editing
     if "editing_transaction" in st.session_state:
         st.write("### Edit Transaction")
@@ -71,6 +83,61 @@ def render_manage_transactions():
                              on_click=lambda: st.session_state.pop('delete_confirm', None))
         
         st.divider()
+
+def render_export_section(transactions):
+    """Render the data export interface."""
+    st.write("### Export Transactions")
+    
+    # Convert transactions to DataFrame
+    df = pd.DataFrame(transactions)
+    
+    # Date range filter
+    st.write("#### Select Date Range")
+    col1, col2 = st.columns(2)
+    with col1:
+        min_date = pd.to_datetime(df['created_at']).min().date()
+        start_date = st.date_input("From", value=min_date)
+    with col2:
+        max_date = pd.to_datetime(df['created_at']).max().date()
+        end_date = st.date_input("To", value=max_date)
+    
+    # Filter data based on date range
+    df['created_at'] = pd.to_datetime(df['created_at'])
+    mask = (df['created_at'].dt.date >= start_date) & (df['created_at'].dt.date <= end_date)
+    filtered_df = df[mask]
+    
+    # Export format selection
+    st.write("#### Export Format")
+    export_format = st.radio(
+        "Choose format:",
+        ["CSV", "Excel"],
+        help="CSV is better for importing into other software. Excel includes formatting and is better for viewing."
+    )
+    
+    # Show export button and handle download
+    if export_format == "CSV":
+        if st.download_button(
+            "📥 Download CSV",
+            data=export_to_csv(filtered_df),
+            file_name=f"transactions_{start_date}_to_{end_date}.csv",
+            mime="text/csv",
+        ):
+            st.success("✅ CSV file downloaded successfully!")
+    else:
+        if st.download_button(
+            "📥 Download Excel",
+            data=export_to_excel(filtered_df),
+            file_name=f"transactions_{start_date}_to_{end_date}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ):
+            st.success("✅ Excel file downloaded successfully!")
+    
+    # Preview of data to be exported
+    st.write("#### Data Preview")
+    preview_df = prepare_export_data(filtered_df).head(5)
+    st.dataframe(preview_df, use_container_width=True)
+    
+    st.caption(f"Total records to be exported: {len(filtered_df)}")
 
 def edit_transaction_form(transaction, transaction_model):
     """Form for editing a transaction."""

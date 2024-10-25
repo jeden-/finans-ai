@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List
+import io
 
 def format_currency(amount):
     # Format number with thousands separator and 2 decimal places
@@ -77,6 +78,71 @@ def predict_next_month_spending(df):
         return monthly_expenses.rolling(3).mean().iloc[-1]
     return monthly_expenses.mean()
 
+def prepare_export_data(df):
+    """Prepare data for export by formatting and selecting relevant columns."""
+    export_df = df.copy()
+    
+    # Format currency amounts
+    export_df['amount'] = export_df['amount'].apply(lambda x: f"{x:,.2f} PLN")
+    
+    # Format dates
+    date_columns = ['created_at', 'start_date', 'end_date', 'due_date']
+    for col in date_columns:
+        if col in export_df.columns:
+            export_df[col] = export_df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Select and rename columns for export
+    columns_map = {
+        'description': 'Description',
+        'amount': 'Amount',
+        'type': 'Type',
+        'category': 'Category',
+        'cycle': 'Cycle',
+        'start_date': 'Start Date',
+        'end_date': 'End Date',
+        'due_date': 'Due Date',
+        'created_at': 'Created At'
+    }
+    
+    export_df = export_df[columns_map.keys()].rename(columns=columns_map)
+    return export_df
+
 def export_to_csv(df):
     """Export transactions to CSV format."""
-    return df.to_csv(index=False).encode('utf-8')
+    export_df = prepare_export_data(df)
+    return export_df.to_csv(index=False).encode('utf-8')
+
+def export_to_excel(df):
+    """Export transactions to Excel format with formatting."""
+    export_df = prepare_export_data(df)
+    
+    # Create Excel writer object
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        export_df.to_excel(writer, sheet_name='Transactions', index=False)
+        
+        # Get workbook and worksheet objects
+        workbook = writer.book
+        worksheet = writer.sheets['Transactions']
+        
+        # Add formats
+        header_format = workbook.add_format({
+            'bold': True,
+            'text_wrap': True,
+            'valign': 'top',
+            'border': 1
+        })
+        
+        # Format headers
+        for col_num, value in enumerate(export_df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+            
+        # Adjust column widths
+        for i, col in enumerate(export_df.columns):
+            max_length = max(
+                export_df[col].astype(str).apply(len).max(),
+                len(col)
+            )
+            worksheet.set_column(i, i, max_length + 2)
+    
+    return output.getvalue()
