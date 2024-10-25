@@ -64,9 +64,11 @@ class Database:
 
     def execute(self, query, params=None):
         try:
-            logger.debug(f"Executing query: {query}")
+            logger.info(f"Executing query with params: {params}")
             self.cursor.execute(query, params)
             self.conn.commit()
+            logger.info("Query executed successfully")
+            return self.cursor.rowcount
         except psycopg2.Error as e:
             logger.error(f"Query execution failed: {str(e)}")
             self.conn.rollback()
@@ -74,10 +76,11 @@ class Database:
 
     def fetch_all(self, query, params=None):
         try:
-            logger.debug(f"Executing query: {query}")
+            logger.info(f"Executing fetch_all query: {query}")
+            logger.debug(f"Query params: {params}")
             self.cursor.execute(query, params)
             results = self.cursor.fetchall()
-            logger.debug(f"Query returned {len(results)} results")
+            logger.info(f"Query returned {len(results)} results")
             return results
         except psycopg2.Error as e:
             logger.error(f"Query execution failed: {str(e)}")
@@ -85,8 +88,12 @@ class Database:
 
     def fetch_one(self, query, params=None):
         try:
+            logger.info(f"Executing fetch_one query: {query}")
+            logger.debug(f"Query params: {params}")
             self.cursor.execute(query, params)
-            return self.cursor.fetchone()
+            result = self.cursor.fetchone()
+            logger.info(f"Query returned {'a result' if result else 'no result'}")
+            return result
         except psycopg2.Error as e:
             logger.error(f"Query execution failed: {str(e)}")
             raise
