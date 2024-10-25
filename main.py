@@ -20,6 +20,8 @@ def main():
     # Initialize session state for AI model choice if not exists
     if 'ai_model' not in st.session_state:
         st.session_state.ai_model = "OpenAI"
+    if 'openai_model' not in st.session_state:
+        st.session_state.openai_model = "gpt-3.5-turbo"
     
     # Sidebar
     st.sidebar.title("Navigation")
@@ -44,43 +46,58 @@ def main():
         
         # AI Model settings
         st.write("##### AI Configuration")
-        model_choice = st.selectbox(
-            "AI Service",
-            ["OpenAI", "Ollama"],
-            index=0 if st.session_state.ai_model == "OpenAI" else 1,
-            help="Choose the AI service for transaction analysis"
-        )
         
-        if model_choice == "OpenAI":
+        # Create tabs for different AI services
+        ai_tabs = st.tabs(["OpenAI", "Ollama"])
+
+        with ai_tabs[0]:  # OpenAI tab
+            # API Key input
             openai_key = st.text_input(
                 "OpenAI API Key",
                 type="password",
-                value=st.secrets.get("OPENAI_API_KEY", ""),
-                help="Enter your OpenAI API key"
+                value=os.environ.get("OPENAI_API_KEY", ""),
+                help="Enter your OpenAI API key here"
             )
             if openai_key:
                 st.session_state.openai_api_key = openai_key
                 os.environ["OPENAI_API_KEY"] = openai_key
-        else:
+                
+            # Model selection
+            openai_model = st.selectbox(
+                "Model",
+                ["gpt-3.5-turbo", "gpt-4"],
+                index=0,
+                help="Select OpenAI model to use"
+            )
+            st.session_state.openai_model = openai_model
+
+        with ai_tabs[1]:  # Ollama tab
             # Get available Ollama models
             try:
                 response = requests.get("http://localhost:11434/api/tags")
                 if response.status_code == 200:
                     available_models = [model['name'] for model in response.json()['models']]
                 else:
-                    available_models = ["llama2"]  # default fallback
+                    available_models = ["llama2"]
             except:
-                available_models = ["llama2"]  # default fallback
+                available_models = ["llama2"]
                 
             ollama_model = st.selectbox(
-                "Ollama Model",
+                "Model",
                 options=available_models,
                 index=0,
-                help="Select the Ollama model to use"
+                help="Select Ollama model to use"
             )
             st.session_state.ollama_model = ollama_model
-        
-        st.session_state.ai_model = model_choice
+
+        # AI service selection
+        ai_service = st.selectbox(
+            "Active AI Service",
+            ["OpenAI", "Ollama"],
+            index=0 if st.session_state.get('ai_model') == "OpenAI" else 1,
+            help="Choose which AI service to use"
+        )
+        st.session_state.ai_model = ai_service
     
     # Main content
     st.title("Personal Finance Manager")
