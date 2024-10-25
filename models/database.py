@@ -64,6 +64,7 @@ class Database:
 
     def execute(self, query, params=None):
         try:
+            logger.debug(f"Executing query: {query}")
             self.cursor.execute(query, params)
             self.conn.commit()
         except psycopg2.Error as e:
@@ -73,8 +74,11 @@ class Database:
 
     def fetch_all(self, query, params=None):
         try:
+            logger.debug(f"Executing query: {query}")
             self.cursor.execute(query, params)
-            return self.cursor.fetchall()
+            results = self.cursor.fetchall()
+            logger.debug(f"Query returned {len(results)} results")
+            return results
         except psycopg2.Error as e:
             logger.error(f"Query execution failed: {str(e)}")
             raise

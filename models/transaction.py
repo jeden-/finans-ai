@@ -2,6 +2,10 @@ from datetime import datetime, timedelta, date
 from models.database import Database
 from typing import Optional, Dict, Any
 import json
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class Transaction:
     def __init__(self):
@@ -11,6 +15,8 @@ class Transaction:
                          category: str, cycle: str, start_date: Optional[date] = None, 
                          end_date: Optional[date] = None, metadata: Dict[str, Any] = None):
         """Create a new transaction with support for recurring amounts."""
+        logger.info(f"Creating transaction: {description}, amount: {amount}")
+        
         if cycle != "none" and start_date:
             # Set default end_date to 5 years from start if not specified
             if not end_date:
@@ -28,10 +34,14 @@ class Transaction:
             description,  # Store original text
             json.dumps(metadata) if metadata else None
         ))
+        logger.info("Transaction created successfully")
 
     def get_all_transactions(self):
+        logger.info("Attempting to fetch all transactions")
         query = "SELECT * FROM transactions ORDER BY created_at DESC"
-        return self.db.fetch_all(query)
+        results = self.db.fetch_all(query)
+        logger.info(f"Found {len(results) if results else 0} transactions")
+        return results
 
     def get_transactions_for_period(self, start_date: date, end_date: date):
         """Get transactions for a specific period, calculating recurring amounts."""
