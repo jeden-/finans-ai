@@ -1,5 +1,8 @@
 TRANSLATIONS = {
     'en': {
+        'app': {
+            'title': 'Personal Finance Manager'
+        },
         'navigation': {
             'title': 'Navigation',
             'go_to': 'Go to',
@@ -34,7 +37,27 @@ TRANSLATIONS = {
             'analyzing': 'Analyzing your finances...',
             'error': 'An error occurred while processing your question. Please try again.',
             'clear_chat': 'Clear Chat',
-            'context_title': '🔍 Relevant Transaction Context'
+            'context_title': '🔍 Relevant Transaction Context',
+            'missing_api_key': 'OpenAI API key is required for the chat assistant to work. Please add it in the settings.'
+        },
+        'budget': {
+            'title': 'Budget Planning',
+            'overview': 'Budget Overview',
+            'create': 'Create Budget',
+            'manage': 'Manage Budgets',
+            'tracking': 'Budget Tracking',
+            'no_budgets': 'No active budgets found. Create a budget to start tracking your spending!',
+            'amount': 'Budget Amount (PLN)',
+            'period': 'Budget Period',
+            'start_date': 'Start Date',
+            'end_date': 'End Date',
+            'notification': 'Notification Threshold',
+            'advanced': 'Advanced Settings',
+            'progress': 'Budget Progress',
+            'spent': 'Spent',
+            'remaining': 'Remaining',
+            'over_budget': 'Over budget by',
+            'warning_threshold': 'Approaching budget limit'
         },
         'common': {
             'amount': 'Amount',
@@ -56,6 +79,9 @@ TRANSLATIONS = {
         }
     },
     'pl': {
+        'app': {
+            'title': 'Menedżer Finansów Osobistych'
+        },
         'navigation': {
             'title': 'Nawigacja',
             'go_to': 'Przejdź do',
@@ -90,7 +116,27 @@ TRANSLATIONS = {
             'analyzing': 'Analizuję Twoje finanse...',
             'error': 'Wystąpił błąd podczas przetwarzania Twojego pytania. Spróbuj ponownie.',
             'clear_chat': 'Wyczyść czat',
-            'context_title': '🔍 Powiązane transakcje'
+            'context_title': '🔍 Powiązane transakcje',
+            'missing_api_key': 'Klucz API OpenAI jest wymagany do działania asystenta czatu. Dodaj go w ustawieniach.'
+        },
+        'budget': {
+            'title': 'Planowanie budżetu',
+            'overview': 'Przegląd budżetu',
+            'create': 'Utwórz budżet',
+            'manage': 'Zarządzaj budżetami',
+            'tracking': 'Śledzenie budżetu',
+            'no_budgets': 'Nie znaleziono aktywnych budżetów. Utwórz budżet, aby zacząć śledzenie wydatków!',
+            'amount': 'Kwota budżetu (PLN)',
+            'period': 'Okres budżetowy',
+            'start_date': 'Data rozpoczęcia',
+            'end_date': 'Data zakończenia',
+            'notification': 'Próg powiadomień',
+            'advanced': 'Ustawienia zaawansowane',
+            'progress': 'Postęp budżetu',
+            'spent': 'Wydane',
+            'remaining': 'Pozostało',
+            'over_budget': 'Przekroczono budżet o',
+            'warning_threshold': 'Zbliżasz się do limitu budżetu'
         },
         'common': {
             'amount': 'Kwota',

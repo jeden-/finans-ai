@@ -2,11 +2,17 @@ import streamlit as st
 from services.financial_chat_service import FinancialChatService
 from utils.helpers import get_text
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 def render_chat_assistant():
     st.subheader(get_text('chat.title'))
+    
+    # Check if OpenAI API key is available
+    if not os.environ.get("OPENAI_API_KEY") and st.session_state.ai_model == "OpenAI":
+        st.warning(get_text('chat.missing_api_key'))
+        return
     
     # Initialize chat service
     if 'chat_service' not in st.session_state:
@@ -65,6 +71,6 @@ def render_chat_assistant():
                     st.error(get_text('chat.error'))
     
     # Clear chat button
-    if st.button(get_text('chat.clear_chat')):
+    if st.session_state.chat_history and st.button(get_text('chat.clear_chat')):
         st.session_state.chat_history = []
         st.rerun()

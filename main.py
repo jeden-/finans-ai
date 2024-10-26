@@ -11,7 +11,7 @@ from utils.helpers import get_text
 
 # Page config
 st.set_page_config(
-    page_title="Personal Finance Manager",
+    page_title=get_text('app.title'),
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -41,7 +41,7 @@ def main():
     )
     
     # Settings button in top right corner
-    col1, col2 = st.columns([15, 1])  # Create columns for layout
+    col1, col2 = st.columns([15, 1])
     with col2:
         if st.button("⚙️", help=get_text('settings.title')):
             st.session_state.show_settings = not st.session_state.get('show_settings', False)
@@ -108,7 +108,7 @@ def main():
                 st.session_state.show_settings = False
     
     # Main content
-    st.title("Personal Finance Manager")
+    st.title(get_text('app.title'))
     
     # Route to appropriate page
     page_map = {
