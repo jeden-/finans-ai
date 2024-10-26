@@ -3,29 +3,29 @@ from datetime import datetime, timedelta, date
 from services.openai_service import OpenAIService
 from services.ollama_service import OllamaService
 from models.transaction import Transaction
-from utils.helpers import format_currency
+from utils.helpers import format_currency, get_text
 from components.manage_categories import render_category_selector
 import logging
 
 logger = logging.getLogger(__name__)
 
 def render_transaction_form():
-    st.subheader("New Transaction")
+    st.subheader(get_text('navigation.add_transaction'))
     
     # Example transaction placeholder
-    st.markdown("""
-    💡 **Example formats:**
+    st.markdown(f"""
+    💡 **{get_text('transaction.example_formats')}**
     - "internet domowy 20zł miesięcznie"
     - "wypłata 5000 złotych"
     - "czynsz 1500 PLN"
     """)
     
     description = st.text_input(
-        "Transaction Description (include amount in PLN/zł)",
-        help="Enter transaction description including the amount in Polish currency format (e.g., 20zł, 100 PLN, 50 złotych)"
+        get_text('common.description'),
+        help=get_text('transaction.description_help')
     )
     
-    if st.button("Analyze Transaction"):
+    if st.button(get_text('transaction.analyze')):
         # Create placeholders for status messages and progress
         status_placeholder = st.empty()
         progress_placeholder = st.empty()
@@ -34,13 +34,13 @@ def render_transaction_form():
         
         def update_status(message):
             # Determine progress based on message content
-            if "Processing" in message:
+            if get_text('transaction.processing') in message:
                 progress = 0.6
                 status_placeholder.info(f"⚙️ {message}")
-            elif "Successfully" in message:
+            elif get_text('transaction.success') in message:
                 progress = 1.0
                 status_placeholder.success(f"✅ {message}")
-            elif "Error" in message:
+            elif get_text('transaction.error') in message:
                 progress = 0
                 status_placeholder.error(f"❌ {message}")
             else:
@@ -49,7 +49,7 @@ def render_transaction_form():
             
             progress_bar.progress(progress)
         
-        update_status("Initializing AI analysis...")
+        update_status(get_text('transaction.processing'))
         
         try:
             # Use the selected AI model
@@ -57,23 +57,23 @@ def render_transaction_form():
             classification = ai_service.classify_transaction(description, status_callback=update_status)
             
             if classification is None:
-                status_placeholder.error("❌ Could not process the transaction. Please try again.")
+                status_placeholder.error(get_text('transaction.error'))
                 progress_bar.progress(0)
                 return
             
             if 'amount' in classification and classification['amount']:
                 st.session_state.classification = classification
                 result_placeholder.success(f"""
-                ✅ Transaction analyzed successfully!
-                - Type: {classification['type']}
-                - Category: {classification['category']}
-                - Amount: {format_currency(classification['amount'])}
-                - Cycle: {classification['cycle']}
+                ✅ {get_text('transaction.success')}
+                - {get_text('common.type')}: {classification['type']}
+                - {get_text('common.category')}: {classification['category']}
+                - {get_text('common.amount')}: {format_currency(classification['amount'])}
+                - {get_text('common.cycle')}: {classification['cycle']}
                 """)
             else:
-                status_placeholder.warning("""
-                ⚠️ Could not detect amount in the description.
-                Please include the amount in PLN or zł format, for example:
+                status_placeholder.warning(f"""
+                ⚠️ {get_text('transaction.error')}
+                {get_text('transaction.description_help')}:
                 - 20zł
                 - 100 PLN
                 - 50 złotych
@@ -81,7 +81,7 @@ def render_transaction_form():
                 progress_bar.progress(0)
         except Exception as e:
             logger.error(f"Error during transaction analysis: {str(e)}")
-            status_placeholder.error(f"❌ An error occurred while analyzing the transaction: {str(e)}")
+            status_placeholder.error(f"❌ {get_text('transaction.error')}: {str(e)}")
             progress_bar.progress(0)
     
     if 'classification' in st.session_state:
@@ -92,25 +92,25 @@ def render_transaction_form():
         # Show and allow editing of extracted amount
         detected_amount = class_data.get('amount', 0)
         amount = st.number_input(
-            "Amount (detected from description)",
+            f"{get_text('common.amount')} ({get_text('transaction.description_help')})",
             value=float(detected_amount),
             min_value=0.01,
             step=0.01,
-            help="You can adjust the amount if it wasn't detected correctly"
+            help=get_text('transaction.description_help')
         )
         
-        type = st.selectbox("Type", ["income", "expense"], 
+        type = st.selectbox(get_text('common.type'), ["income", "expense"], 
                            index=0 if class_data['type'] == 'income' else 1)
         
         # Use the new category selector component
         category = render_category_selector(
             key="transaction_category",
-            help_text="Select an existing category or create a new one"
+            help_text=get_text('common.category')
         )
         if not category:
             category = class_data['category']
             
-        cycle = st.selectbox("Cycle", ["none", "daily", "weekly", "monthly", "yearly"],
+        cycle = st.selectbox(get_text('common.cycle'), ["none", "daily", "weekly", "monthly", "yearly"],
                           index=["none", "daily", "weekly", "monthly", "yearly"].index(class_data['cycle']))
         
         # Set default dates
@@ -120,9 +120,9 @@ def render_transaction_form():
         if cycle != "none":
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input("Start Date", value=today)
+                start_date = st.date_input(get_text('budget.start_date'), value=today)
             with col2:
-                end_date = st.date_input("End Date", value=default_end_date)
+                end_date = st.date_input(get_text('budget.end_date'), value=default_end_date)
                 
             # Show due_date field for monthly and yearly transactions
             if cycle in ["monthly", "yearly"]:
@@ -140,7 +140,7 @@ def render_transaction_form():
             end_date = None
             due_date = None
         
-        if st.button("Save Transaction"):
+        if st.button(get_text('common.save')):
             transaction = Transaction()
             try:
                 # Convert Streamlit date_input values to Python date objects
@@ -150,7 +150,7 @@ def render_transaction_form():
                 
                 # Ensure category is not None
                 if not category:
-                    raise ValueError("Category cannot be empty")
+                    raise ValueError(get_text('error.no_category'))
                 
                 transaction.create_transaction(
                     description=description,
@@ -162,22 +162,22 @@ def render_transaction_form():
                     end_date=end_date,
                     due_date=due_date
                 )
-                st.success("✅ Transaction saved successfully!")
+                st.success(f"✅ {get_text('common.success')}")
                 st.session_state.pop('classification', None)
                 
                 # Show summary of saved transaction
                 st.write("### Transaction Summary")
-                st.write(f"- Description: {description}")
-                st.write(f"- Amount: {format_currency(amount)}")
-                st.write(f"- Type: {type}")
-                st.write(f"- Category: {category}")
-                st.write(f"- Cycle: {cycle}")
+                st.write(f"- {get_text('common.description')}: {description}")
+                st.write(f"- {get_text('common.amount')}: {format_currency(amount)}")
+                st.write(f"- {get_text('common.type')}: {type}")
+                st.write(f"- {get_text('common.category')}: {category}")
+                st.write(f"- {get_text('common.cycle')}: {cycle}")
                 if cycle != "none":
-                    st.write(f"- Start Date: {start_date}")
-                    st.write(f"- End Date: {end_date}")
+                    st.write(f"- {get_text('budget.start_date')}: {start_date}")
+                    st.write(f"- {get_text('budget.end_date')}: {end_date}")
                     if cycle in ["monthly", "yearly"]:
                         st.write(f"- Due Date: {due_date}")
                 
             except Exception as e:
                 logger.error(f"Error saving transaction: {str(e)}")
-                st.error(f"❌ Error saving transaction: {str(e)}")
+                st.error(f"❌ {get_text('transaction.error')}: {str(e)}")

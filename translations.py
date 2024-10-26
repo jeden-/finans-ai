@@ -85,26 +85,32 @@ TRANSLATIONS = {
             'net_income_trend': 'Net Income Trend',
             'net_income': 'Net Income',
             'amount': 'Amount (PLN)',
-            'month': 'Month'
+            'month': 'Month',
+            'trend_analysis': 'Trend Analysis',
+            'spending_behavior': 'Spending Behavior',
+            'pattern_recognition': 'Pattern Recognition',
+            'cumulative_spending': 'Cumulative Spending Over Time',
+            'transaction_size': 'Transaction Size Distribution',
+            'spending_heatmap': 'Spending Heatmap by Day and Hour',
+            'hour_of_day': 'Hour of Day',
+            'day_of_week': 'Day of Week'
         },
-        'common': {
-            'amount': 'Amount',
-            'type': 'Type',
-            'category': 'Category',
-            'description': 'Description',
-            'date': 'Date',
-            'cycle': 'Cycle',
-            'success': '✅ Success',
-            'error': '❌ Error',
-            'warning': '⚠️ Warning',
-            'save': 'Save',
-            'cancel': 'Cancel',
-            'delete': 'Delete',
-            'edit': 'Edit',
-            'confirm': 'Confirm',
-            'yes': 'Yes',
-            'no': 'No'
-        }
+        'transaction': {
+            'example_formats': 'Example formats:',
+            'description_help': 'Enter transaction description including the amount in Polish currency format (e.g., 20zł, 100 PLN, 50 złotych)',
+            'analyze': 'Analyze Transaction',
+            'processing': 'Processing transaction...',
+            'success': 'Transaction analyzed successfully!',
+            'error': 'Could not process the transaction. Please try again.'
+        },
+        'error': {
+            'loading_dashboard': 'An error occurred while loading the dashboard. Please try again later or contact support if the problem persists.',
+            'no_transactions': 'No transactions found. Start by adding some transactions!',
+            'no_data_range': 'No transactions found for the selected date range.'
+        },
+        'weekdays': [
+            'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+        ]
     },
     'pl': {
         'app': {
@@ -192,25 +198,31 @@ TRANSLATIONS = {
             'net_income_trend': 'Trend dochodu netto',
             'net_income': 'Dochód netto',
             'amount': 'Kwota (PLN)',
-            'month': 'Miesiąc'
+            'month': 'Miesiąc',
+            'trend_analysis': 'Analiza trendów',
+            'spending_behavior': 'Zachowania wydatkowe',
+            'pattern_recognition': 'Rozpoznawanie wzorców',
+            'cumulative_spending': 'Wydatki skumulowane w czasie',
+            'transaction_size': 'Rozkład wielkości transakcji',
+            'spending_heatmap': 'Mapa wydatków według dni i godzin',
+            'hour_of_day': 'Godzina',
+            'day_of_week': 'Dzień tygodnia'
         },
-        'common': {
-            'amount': 'Kwota',
-            'type': 'Typ',
-            'category': 'Kategoria',
-            'description': 'Opis',
-            'date': 'Data',
-            'cycle': 'Cykl',
-            'success': '✅ Sukces',
-            'error': '❌ Błąd',
-            'warning': '⚠️ Ostrzeżenie',
-            'save': 'Zapisz',
-            'cancel': 'Anuluj',
-            'delete': 'Usuń',
-            'edit': 'Edytuj',
-            'confirm': 'Potwierdź',
-            'yes': 'Tak',
-            'no': 'Nie'
-        }
+        'transaction': {
+            'example_formats': 'Przykładowe formaty:',
+            'description_help': 'Wprowadź opis transakcji wraz z kwotą w polskim formacie waluty (np. 20zł, 100 PLN, 50 złotych)',
+            'analyze': 'Analizuj transakcję',
+            'processing': 'Przetwarzanie transakcji...',
+            'success': 'Transakcja przeanalizowana pomyślnie!',
+            'error': 'Nie udało się przetworzyć transakcji. Spróbuj ponownie.'
+        },
+        'error': {
+            'loading_dashboard': 'Wystąpił błąd podczas ładowania panelu. Spróbuj ponownie później lub skontaktuj się z pomocą techniczną, jeśli problem będzie się powtarzał.',
+            'no_transactions': 'Nie znaleziono transakcji. Zacznij od dodania kilku transakcji!',
+            'no_data_range': 'Nie znaleziono transakcji dla wybranego zakresu dat.'
+        },
+        'weekdays': [
+            'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'
+        ]
     }
 }

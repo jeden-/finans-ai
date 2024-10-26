@@ -1,95 +1,108 @@
-import logging
-from typing import List, Dict, Any, Optional
-from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.utils import embedding_functions
-from models.transaction import Transaction
 import pandas as pd
-import json
+from models.transaction import Transaction
+import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 class RAGService:
     def __init__(self):
-        self.transaction_model = Transaction()
-        self.chroma_client = chromadb.Client()
-        self.collection = self.chroma_client.create_collection(
-            name="transactions",
-            embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name="all-MiniLM-L6-v2"
-            )
-        )
-        self.update_transaction_embeddings()
-
-    def update_transaction_embeddings(self):
-        """Update the vector store with all transactions."""
+        """Initialize the RAG service with ChromaDB."""
         try:
-            transactions = self.transaction_model.get_all_transactions()
-            if not transactions:
-                return
-
-            # Convert transactions to documents
-            docs = []
-            metadatas = []
-            ids = []
-
-            for tx in transactions:
-                # Create a natural language description
-                doc = (
-                    f"A {tx['type']} transaction of {tx['amount']} PLN in category '{tx['category']}' "
-                    f"for '{tx['description']}' on {tx['created_at']}. "
-                    f"This is a {tx['cycle']} transaction."
-                )
-                docs.append(doc)
-                metadatas.append({
-                    "id": str(tx["id"]),
-                    "type": tx["type"],
-                    "category": tx["category"],
-                    "amount": str(tx["amount"]),
-                    "cycle": tx["cycle"]
-                })
-                ids.append(str(tx["id"]))
-
-            # Add documents to collection
-            self.collection.add(
-                documents=docs,
-                metadatas=metadatas,
-                ids=ids
+            # Initialize ChromaDB with persistence
+            self.chroma_client = chromadb.PersistentClient(path=".chromadb")
+            
+            # Create or get the collection for transactions
+            self.collection = self.chroma_client.get_or_create_collection(
+                name="transactions",
+                embedding_function=embedding_functions.DefaultEmbeddingFunction()
             )
-            logger.info(f"Updated embeddings for {len(docs)} transactions")
-
+            
+            # Initial update of embeddings
+            self.update_transaction_embeddings()
         except Exception as e:
-            logger.error(f"Error updating transaction embeddings: {str(e)}")
+            logger.error(f"Error initializing RAG service: {str(e)}")
+            raise
 
-    def get_relevant_context(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
-        """Get relevant transactions for a given query."""
+    def prepare_chat_context(self, query: str, k: int = 5) -> str:
+        """Get relevant transaction context for a given query."""
         try:
+            # Query the collection
             results = self.collection.query(
                 query_texts=[query],
-                n_results=n_results
+                n_results=k
             )
-
-            relevant_transactions = []
-            for i in range(len(results['ids'][0])):
-                relevant_transactions.append({
-                    'id': results['ids'][0][i],
-                    'text': results['documents'][0][i],
-                    'metadata': results['metadatas'][0][i],
-                    'distance': results['distances'][0][i] if 'distances' in results else None
-                })
-
-            return relevant_transactions
-
-        except Exception as e:
-            logger.error(f"Error getting relevant context: {str(e)}")
-            return []
-
-    def prepare_chat_context(self, query: str) -> str:
-        """Prepare context for the chat based on the query and transaction history."""
-        relevant_txs = self.get_relevant_context(query)
-        
-        context = "Based on the transaction history:\n\n"
-        for tx in relevant_txs:
-            context += f"- {tx['text']}\n"
             
-        return context
+            if not results or not results['documents']:
+                return "No relevant transaction history found."
+            
+            # Format the results into a readable context
+            context_parts = []
+            for i, (doc, metadata) in enumerate(zip(results['documents'][0], results['metadatas'][0])):
+                date = datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d')
+                amount = f"{metadata['amount']:.2f} PLN"
+                context_parts.append(f"{i+1}. [{date}] {doc} ({amount})")
+            
+            return "Relevant transactions:\n" + "\n".join(context_parts)
+        except Exception as e:
+            logger.error(f"Error preparing chat context: {str(e)}")
+            return "Error retrieving transaction context."
+
+    def update_transaction_embeddings(self) -> bool:
+        """Update the transaction embeddings in ChromaDB."""
+        try:
+            # Get all transactions
+            transaction_model = Transaction()
+            transactions = transaction_model.get_all_transactions()
+            
+            if not transactions:
+                logger.info("No transactions found to update embeddings.")
+                return True
+            
+            # Convert to DataFrame for easier processing
+            df = pd.DataFrame(transactions)
+            
+            # Prepare documents and metadata
+            documents = []
+            ids = []
+            metadatas = []
+            
+            for _, row in df.iterrows():
+                # Create a descriptive text for each transaction
+                doc = f"{row['description']} ({row['type']}, {row['category']})"
+                
+                # Prepare metadata
+                metadata = {
+                    "type": row['type'],
+                    "category": row['category'],
+                    "amount": float(row['amount']),
+                    "timestamp": int(pd.to_datetime(row['created_at']).timestamp())
+                }
+                
+                documents.append(doc)
+                ids.append(str(row['id']))
+                metadatas.append(metadata)
+            
+            # Clear existing embeddings and add new ones
+            self.collection.delete()
+            self.collection = self.chroma_client.get_or_create_collection(
+                name="transactions",
+                embedding_function=embedding_functions.DefaultEmbeddingFunction()
+            )
+            
+            # Add documents in batches
+            if documents:
+                self.collection.add(
+                    documents=documents,
+                    ids=ids,
+                    metadatas=metadatas
+                )
+            
+            logger.info(f"Successfully updated embeddings for {len(documents)} transactions")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating transaction embeddings: {str(e)}")
+            return False
