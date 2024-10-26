@@ -7,6 +7,7 @@ from components.manage_transactions import render_manage_transactions
 from components.manage_categories import render_manage_categories
 from components.manage_budgets import render_budget_planning
 from components.chat_assistant import render_chat_assistant
+from utils.helpers import get_text
 
 # Page config
 st.set_page_config(
@@ -17,38 +18,53 @@ st.set_page_config(
 )
 
 def main():
-    # Initialize session state for AI model choice if not exists
+    # Initialize session state
     if 'ai_model' not in st.session_state:
         st.session_state.ai_model = "OpenAI"
     if 'openai_model' not in st.session_state:
         st.session_state.openai_model = "gpt-3.5-turbo"
+    if 'language' not in st.session_state:
+        st.session_state.language = "en"
     
     # Sidebar navigation
-    st.sidebar.title("Navigation")
+    st.sidebar.title(get_text('navigation.title'))
     page = st.sidebar.radio(
-        "Go to", 
-        ["Dashboard", "Add Transaction", "Manage Transactions", 
-         "Manage Categories", "Budget Planning", "Chat Assistant"]
+        get_text('navigation.go_to'),
+        [
+            get_text('navigation.dashboard'),
+            get_text('navigation.add_transaction'),
+            get_text('navigation.manage_transactions'),
+            get_text('navigation.manage_categories'),
+            get_text('navigation.budget_planning'),
+            get_text('navigation.chat_assistant')
+        ]
     )
     
     # Settings button in top right corner
     col1, col2 = st.columns([15, 1])  # Create columns for layout
     with col2:
-        if st.button("⚙️", help="Settings"):
+        if st.button("⚙️", help=get_text('settings.title')):
             st.session_state.show_settings = not st.session_state.get('show_settings', False)
 
     # Show settings modal if enabled
     if st.session_state.get('show_settings', False):
         with st.sidebar:
-            st.markdown("### ⚙️ Settings")
-            with st.expander("Appearance", expanded=True):
+            st.markdown(f"### ⚙️ {get_text('settings.title')}")
+            with st.expander(get_text('settings.appearance'), expanded=True):
                 theme = st.select_slider(
-                    "Theme",
+                    get_text('settings.theme'),
                     options=["Light", "Dark"],
                     value="Dark"
                 )
+                language = st.selectbox(
+                    "Language / Język",
+                    options=["English", "Polski"],
+                    index=0 if st.session_state.get('language', 'en') == 'en' else 1,
+                    help="Choose application language / Wybierz język aplikacji"
+                )
+                st.session_state.language = 'en' if language == 'English' else 'pl'
                 
-            with st.expander("AI Configuration", expanded=True):
+            with st.expander(get_text('settings.ai_configuration'), expanded=True):
                 ai_service = st.selectbox(
                     "AI Service",
                     ["OpenAI", "Ollama"],
@@ -57,17 +73,17 @@ def main():
                 
                 if ai_service == "OpenAI":
                     openai_key = st.text_input(
-                        "API Key",
+                        get_text('settings.api_key'),
                         type="password",
                         value=os.environ.get("OPENAI_API_KEY", ""),
-                        help="Enter your OpenAI API key"
+                        help=get_text('settings.api_key_help')
                     )
                     if openai_key:
                         st.session_state.openai_api_key = openai_key
                         os.environ["OPENAI_API_KEY"] = openai_key
                         
                     model = st.selectbox(
-                        "Model",
+                        get_text('settings.model'),
                         ["gpt-3.5-turbo", "gpt-4"],
                         index=0
                     )
@@ -80,7 +96,7 @@ def main():
                         available_models = ["llama2"]
                         
                     model = st.selectbox(
-                        "Model",
+                        get_text('settings.model'),
                         options=available_models,
                         index=0
                     )
@@ -88,24 +104,24 @@ def main():
                 
                 st.session_state.ai_model = ai_service
 
-            if st.button("Close Settings"):
+            if st.button(get_text('settings.close')):
                 st.session_state.show_settings = False
     
     # Main content
     st.title("Personal Finance Manager")
     
-    if page == "Dashboard":
-        render_dashboard()
-    elif page == "Manage Transactions":
-        render_manage_transactions()
-    elif page == "Manage Categories":
-        render_manage_categories()
-    elif page == "Budget Planning":
-        render_budget_planning()
-    elif page == "Chat Assistant":
-        render_chat_assistant()
-    else:
-        render_transaction_form()
+    # Route to appropriate page
+    page_map = {
+        get_text('navigation.dashboard'): render_dashboard,
+        get_text('navigation.manage_transactions'): render_manage_transactions,
+        get_text('navigation.manage_categories'): render_manage_categories,
+        get_text('navigation.budget_planning'): render_budget_planning,
+        get_text('navigation.chat_assistant'): render_chat_assistant,
+        get_text('navigation.add_transaction'): render_transaction_form
+    }
+    
+    if page in page_map:
+        page_map[page]()
 
 if __name__ == "__main__":
     main()

@@ -1,11 +1,12 @@
 import streamlit as st
 from services.financial_chat_service import FinancialChatService
+from utils.helpers import get_text
 import logging
 
 logger = logging.getLogger(__name__)
 
 def render_chat_assistant():
-    st.subheader("Financial Chat Assistant")
+    st.subheader(get_text('chat.title'))
     
     # Initialize chat service
     if 'chat_service' not in st.session_state:
@@ -16,16 +17,12 @@ def render_chat_assistant():
         st.session_state.chat_history = []
     
     # Chat interface
-    st.write("""
-    💬 Ask me anything about your finances! For example:
-    - "What are my top spending categories this month?"
-    - "Am I spending more on groceries compared to last month?"
-    - "What's my usual spending pattern during weekends?"
-    - "Can you suggest ways to reduce my monthly expenses?"
-    """)
+    st.write(get_text('chat.intro'))
+    for example in get_text('chat.examples'):
+        st.write(f"- {example}")
     
     # Chat input
-    user_input = st.chat_input("Type your question here...")
+    user_input = st.chat_input(get_text('chat.input_placeholder'))
     
     # Display chat history
     for message in st.session_state.chat_history:
@@ -41,20 +38,20 @@ def render_chat_assistant():
         
         # Get AI response
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing your finances..."):
+            with st.spinner(get_text('chat.analyzing')):
                 try:
                     response = st.session_state.chat_service.get_chat_response(user_input)
                     
                     if 'error' in response:
                         st.error(response['error'])
-                        content = "I apologize, but I encountered an error. Please try again."
+                        content = get_text('chat.error')
                     else:
                         content = response['response']
                         st.write(content)
                         
                         # Show context if available
                         if response.get('context_used'):
-                            with st.expander("🔍 Relevant Transaction Context"):
+                            with st.expander(get_text('chat.context_title')):
                                 st.write(response['context_used'])
                     
                     # Add assistant response to chat history
@@ -65,9 +62,9 @@ def render_chat_assistant():
                     
                 except Exception as e:
                     logger.error(f"Error in chat interface: {str(e)}")
-                    st.error("An error occurred while processing your question. Please try again.")
+                    st.error(get_text('chat.error'))
     
     # Clear chat button
-    if st.button("Clear Chat"):
+    if st.button(get_text('chat.clear_chat')):
         st.session_state.chat_history = []
         st.rerun()
