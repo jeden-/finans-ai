@@ -1,156 +1,154 @@
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from typing import Dict, List
-import io
+from datetime import datetime
+import json
+from typing import Dict, Any, List, Optional
 import streamlit as st
 from translations import TRANSLATIONS
 
-def get_text(key: str, language: str = None) -> str:
-    '''Get translated text for the given key.'''
-    if language is None:
-        language = st.session_state.get('language', 'en')
-    
-    # Split the key into sections (e.g., 'navigation.dashboard')
-    sections = key.split('.')
-    current = TRANSLATIONS[language]
-    
-    try:
-        for section in sections:
-            current = current[section]
-        return current
-    except (KeyError, TypeError):
-        # Fallback to English if translation not found
-        current = TRANSLATIONS['en']
-        for section in sections:
-            current = current[section]
-        return current
+def get_text(key: str) -> str:
+    """Get translated text based on selected language."""
+    current = TRANSLATIONS[st.session_state.get('language', 'en')]
+    for part in key.split('.'):
+        current = current[part]
+    return current
 
-def format_currency(amount):
-    """Format amount in PLN currency format."""
-    if amount is None:
-        return "0.00 PLN"
-    return f"{float(amount):,.2f} PLN"
+def format_currency(amount: float) -> str:
+    """Format amount as PLN currency."""
+    return f"{amount:.2f} PLN"
 
-def prepare_transaction_data(transactions):
+def prepare_transaction_data(transactions: List[Dict[str, Any]]) -> pd.DataFrame:
     """Prepare transaction data for analysis."""
     df = pd.DataFrame(transactions)
     df['created_at'] = pd.to_datetime(df['created_at'])
     return df
 
-def calculate_monthly_totals(df):
+def calculate_monthly_totals(df: pd.DataFrame) -> pd.Series:
     """Calculate monthly transaction totals."""
-    monthly = df.set_index('created_at').resample('M')['amount'].sum()
-    return monthly.to_dict()
+    if df.empty:
+        return pd.Series()
+    monthly = df.set_index('created_at').resample('ME')['amount'].sum()
+    # Ensure we return a Series with proper index
+    monthly = monthly.fillna(0)
+    return monthly
 
-def calculate_monthly_income_expenses(df):
+def calculate_monthly_income_expenses(df: pd.DataFrame) -> pd.DataFrame:
     """Calculate monthly income and expenses."""
-    monthly = df.set_index('created_at').groupby([pd.Grouper(freq='M'), 'type'])['amount'].sum().unstack()
+    if df.empty:
+        return pd.DataFrame(columns=['Income', 'Expenses'])
+    
+    monthly = df.set_index('created_at').groupby([pd.Grouper(freq='ME'), 'type'])['amount'].sum()
+    
+    # Unstack and handle missing columns
+    monthly = monthly.unstack(fill_value=0)
+    
+    # Ensure both income and expense columns exist
+    if 'income' not in monthly.columns:
+        monthly['income'] = 0
+    if 'expense' not in monthly.columns:
+        monthly['expense'] = 0
+        
+    # Rename columns
     monthly.columns = ['Income' if x == 'income' else 'Expenses' for x in monthly.columns]
     return monthly
 
-def calculate_category_trends(df):
-    '''Calculate spending trends by category over time.'''
-    df_expenses = df[df['type'] == 'expense'].copy()
-    category_trends = df_expenses.pivot_table(
-        values='amount',
+def calculate_category_trends(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate spending trends by category."""
+    if df.empty or df[df['type'] == 'expense'].empty:
+        return pd.DataFrame()
+        
+    expense_df = df[df['type'] == 'expense'].copy()
+    category_monthly = expense_df.pivot_table(
         index='created_at',
         columns='category',
+        values='amount',
         aggfunc='sum'
-    ).fillna(0)
-    return category_trends
+    ).resample('ME').sum().fillna(0)
+    
+    return category_monthly
 
-def calculate_daily_spending(df):
+def calculate_daily_spending(df: pd.DataFrame) -> pd.DataFrame:
     """Calculate daily spending patterns."""
-    df_expenses = df[df['type'] == 'expense'].copy()
-    daily_spending = df_expenses.set_index('created_at').resample('D')['amount'].sum().fillna(0)
-    return daily_spending
+    if df.empty or df[df['type'] == 'expense'].empty:
+        return pd.DataFrame()
+        
+    expense_df = df[df['type'] == 'expense'].copy()
+    daily = expense_df.set_index('created_at').resample('D')['amount'].sum().fillna(0)
+    return daily
 
-def get_top_spending_categories(df, n=5):
+def get_top_spending_categories(df: pd.DataFrame, n: int = 5) -> Dict[str, float]:
     """Get top spending categories."""
-    category_totals = df[df['type'] == 'expense'].groupby('category')['amount'].sum()
-    return category_totals.nlargest(n)
-
-def calculate_mom_changes(df):
-    """Calculate month-over-month changes in spending."""
-    monthly_spending = df[df['type'] == 'expense'].set_index('created_at').resample('M')['amount'].sum()
-    mom_changes = monthly_spending.pct_change()
-    return mom_changes
-
-def calculate_average_spending(df):
-    """Calculate average spending by various time periods."""
+    if df.empty or df[df['type'] == 'expense'].empty:
+        return {}
+        
     expense_df = df[df['type'] == 'expense']
+    categories = expense_df.groupby('category')['amount'].sum().sort_values(ascending=False)
+    return categories.head(n).to_dict()
+
+def calculate_mom_changes(df: pd.DataFrame) -> Dict[str, float]:
+    """Calculate month-over-month changes."""
+    if df.empty:
+        return {}
+        
+    monthly = calculate_monthly_totals(df)
+    if len(monthly) < 2:
+        return {}
+        
+    mom_change = (monthly.iloc[-1] - monthly.iloc[-2]) / monthly.iloc[-2] if monthly.iloc[-2] != 0 else 0
+    return {'last_month_change': mom_change}
+
+def calculate_average_spending(df: pd.DataFrame) -> Dict[str, float]:
+    """Calculate average spending metrics."""
+    if df.empty or df[df['type'] == 'expense'].empty:
+        return {}
+        
+    expense_df = df[df['type'] == 'expense']
+    daily_avg = expense_df.groupby(expense_df['created_at'].dt.date)['amount'].sum().mean()
+    monthly_avg = expense_df.groupby(expense_df['created_at'].dt.to_period('M'))['amount'].sum().mean()
+    
     return {
-        'daily': expense_df.resample('D', on='created_at')['amount'].mean(),
-        'weekly': expense_df.resample('W', on='created_at')['amount'].mean(),
-        'monthly': expense_df.resample('M', on='created_at')['amount'].mean()
+        'daily_average': daily_avg,
+        'monthly_average': monthly_avg
     }
 
-def get_upcoming_recurring_payments(df):
-    """Get upcoming recurring payments."""
+def get_upcoming_recurring_payments(df: pd.DataFrame) -> List[Dict[str, Any]]:
+    """Get list of upcoming recurring payments."""
+    if df.empty:
+        return []
+        
     recurring = df[df['cycle'] != 'none'].copy()
     if recurring.empty:
         return []
-    
-    today = datetime.now().date()
+        
     upcoming = []
+    today = datetime.now()
     
-    for _, payment in recurring.iterrows():
-        if payment['end_date'] and payment['end_date'] < today:
-            continue
-            
-        next_date = None
-        if payment['cycle'] == 'monthly':
-            next_date = payment['due_date'].replace(month=today.month, year=today.year)
-            if next_date < today:
-                next_date = next_date.replace(month=next_date.month + 1)
-        elif payment['cycle'] == 'yearly':
-            next_date = payment['due_date'].replace(year=today.year)
-            if next_date < today:
-                next_date = next_date.replace(year=next_date.year + 1)
-                
-        if next_date:
+    for _, transaction in recurring.iterrows():
+        if transaction['cycle'] in ['monthly', 'yearly']:
             upcoming.append({
-                'description': payment['description'],
-                'amount': payment['amount'],
-                'category': payment['category'],
-                'due_date': next_date
+                'description': transaction['description'],
+                'amount': transaction['amount'],
+                'category': transaction['category'],
+                'cycle': transaction['cycle'],
+                'due_date': transaction['due_date']
             })
     
-    return sorted(upcoming, key=lambda x: x['due_date'])
+    return upcoming
 
-def predict_next_month_spending(df):
-    """Predict next month's spending based on historical patterns."""
-    expense_df = df[df['type'] == 'expense'].copy()
-    monthly_spending = expense_df.set_index('created_at').resample('M')['amount'].sum()
+def predict_next_month_spending(df: pd.DataFrame) -> Dict[str, float]:
+    """Predict next month's spending based on historical data."""
+    if df.empty or df[df['type'] == 'expense'].empty:
+        return {}
+        
+    expense_df = df[df['type'] == 'expense']
+    monthly_totals = expense_df.groupby(expense_df['created_at'].dt.to_period('M'))['amount'].sum()
     
-    if len(monthly_spending) < 3:
-        return None
+    if len(monthly_totals) < 2:
+        return {'predicted_amount': monthly_totals.mean() if not monthly_totals.empty else 0}
         
     # Simple moving average prediction
-    last_3_months = monthly_spending[-3:].mean()
-    return last_3_months
+    last_3_months = monthly_totals.tail(3).mean()
+    return {'predicted_amount': last_3_months}
 
-def prepare_export_data(df):
-    '''Prepare transaction data for export.'''
-    export_df = df.copy()
-    # Format dates
-    export_df['created_at'] = export_df['created_at'].dt.strftime('%Y-%m-%d %H:%M:%S')
-    export_df['start_date'] = pd.to_datetime(export_df['start_date']).dt.strftime('%Y-%m-%d')
-    export_df['end_date'] = pd.to_datetime(export_df['end_date']).dt.strftime('%Y-%m-%d')
-    export_df['due_date'] = pd.to_datetime(export_df['due_date']).dt.strftime('%Y-%m-%d')
-    # Format amounts
-    export_df['amount'] = export_df['amount'].map(lambda x: f'{float(x):.2f}')
-    return export_df
-
-def export_to_csv(df):
-    """Export DataFrame to CSV."""
-    output = io.StringIO()
-    df.to_csv(output, index=True)
-    return output.getvalue()
-
-def export_to_excel(df):
-    """Export DataFrame to Excel."""
-    output = io.BytesIO()
-    df.to_excel(output, index=True)
-    return output.getvalue()
+def export_to_csv(df: pd.DataFrame) -> str:
+    """Export DataFrame to CSV format."""
+    return df.to_csv(index=False).encode('utf-8')
