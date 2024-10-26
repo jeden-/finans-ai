@@ -15,6 +15,10 @@ author = "agent"
 task = "workflow.run"
 args = "Streamlit App"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Run Tests"
+
 [[workflows.workflow]]
 name = "Streamlit App"
 author = "agent"
@@ -26,6 +30,17 @@ agentRequireRestartOnSave = false
 task = "shell.exec"
 args = "streamlit run main.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Run Tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m pytest tests/ -v --cov=."
 
 [deployment]
 run = ["sh", "-c", "streamlit run main.py"]
