@@ -57,7 +57,7 @@ class Budget:
             budget = self.db.fetch_one(budget_query, (budget_id,))
             
             if not budget:
-                return {'spent': 0, 'remaining': 0}
+                return {'spent': 0.0, 'remaining': 0.0}
             
             # Calculate total spent for this category within the budget period
             spent_query = """
@@ -77,16 +77,17 @@ class Budget:
             )
             
             result = self.db.fetch_one(spent_query, params)
-            total_spent = float(result['total_spent']) if result else 0
+            total_spent = float(result['total_spent']) if result else 0.0
+            budget_amount = float(budget['amount'])
             
             return {
                 'spent': total_spent,
-                'remaining': float(budget['amount']) - total_spent
+                'remaining': budget_amount - total_spent
             }
             
         except Exception as e:
             logger.error(f"Error getting budget progress: {str(e)}")
-            return {'spent': 0, 'remaining': 0}
+            return {'spent': 0.0, 'remaining': 0.0}
     
     def delete_budget(self, budget_id: int) -> bool:
         """Delete a budget."""
