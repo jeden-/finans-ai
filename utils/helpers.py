@@ -131,6 +131,18 @@ def predict_next_month_spending(df):
     last_3_months = monthly_spending[-3:].mean()
     return last_3_months
 
+def prepare_export_data(df):
+    '''Prepare transaction data for export.'''
+    export_df = df.copy()
+    # Format dates
+    export_df['created_at'] = export_df['created_at'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    export_df['start_date'] = pd.to_datetime(export_df['start_date']).dt.strftime('%Y-%m-%d')
+    export_df['end_date'] = pd.to_datetime(export_df['end_date']).dt.strftime('%Y-%m-%d')
+    export_df['due_date'] = pd.to_datetime(export_df['due_date']).dt.strftime('%Y-%m-%d')
+    # Format amounts
+    export_df['amount'] = export_df['amount'].map(lambda x: f'{float(x):.2f}')
+    return export_df
+
 def export_to_csv(df):
     """Export DataFrame to CSV."""
     output = io.StringIO()
