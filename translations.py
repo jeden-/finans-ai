@@ -59,6 +59,34 @@ TRANSLATIONS = {
             'over_budget': 'Over budget by',
             'warning_threshold': 'Approaching budget limit'
         },
+        'dashboard': {
+            'title': 'Financial Dashboard',
+            'financial_dashboard': 'Financial Dashboard',
+            'from_date': 'From date',
+            'to_date': 'To date',
+            'total_income': 'Total Income',
+            'total_expenses': 'Total Expenses',
+            'current_balance': 'Current Balance',
+            'monthly_trend': 'Monthly Trend',
+            'export_data': 'Export Data',
+            'download_csv': 'Download as CSV',
+            'download_success': 'Data exported successfully!'
+        },
+        'analytics': {
+            'overview': 'Overview',
+            'income_vs_expenses': 'Income vs Expenses',
+            'category_analysis': 'Category Analysis',
+            'spending_patterns': 'Spending Patterns',
+            'insights_forecasting': 'Insights & Forecasting',
+            'advanced_analytics': 'Advanced Analytics',
+            'monthly_income_expenses': 'Monthly Income vs Expenses',
+            'income': 'Income',
+            'expenses': 'Expenses',
+            'net_income_trend': 'Net Income Trend',
+            'net_income': 'Net Income',
+            'amount': 'Amount (PLN)',
+            'month': 'Month'
+        },
         'common': {
             'amount': 'Amount',
             'type': 'Type',
@@ -137,6 +165,34 @@ TRANSLATIONS = {
             'remaining': 'Pozostało',
             'over_budget': 'Przekroczono budżet o',
             'warning_threshold': 'Zbliżasz się do limitu budżetu'
+        },
+        'dashboard': {
+            'title': 'Panel finansowy',
+            'financial_dashboard': 'Panel finansowy',
+            'from_date': 'Data od',
+            'to_date': 'Data do',
+            'total_income': 'Całkowity przychód',
+            'total_expenses': 'Całkowite wydatki',
+            'current_balance': 'Aktualny bilans',
+            'monthly_trend': 'Trend miesięczny',
+            'export_data': 'Eksportuj dane',
+            'download_csv': 'Pobierz jako CSV',
+            'download_success': 'Dane wyeksportowane pomyślnie!'
+        },
+        'analytics': {
+            'overview': 'Przegląd',
+            'income_vs_expenses': 'Przychody vs Wydatki',
+            'category_analysis': 'Analiza kategorii',
+            'spending_patterns': 'Wzorce wydatków',
+            'insights_forecasting': 'Analizy i prognozy',
+            'advanced_analytics': 'Zaawansowana analityka',
+            'monthly_income_expenses': 'Miesięczne przychody i wydatki',
+            'income': 'Przychody',
+            'expenses': 'Wydatki',
+            'net_income_trend': 'Trend dochodu netto',
+            'net_income': 'Dochód netto',
+            'amount': 'Kwota (PLN)',
+            'month': 'Miesiąc'
         },
         'common': {
             'amount': 'Kwota',
