@@ -1,57 +1,33 @@
 import streamlit as st
+import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 from models.transaction import Transaction
 from utils.helpers import (
-    prepare_transaction_data, calculate_monthly_totals, format_currency,
-    calculate_monthly_income_expenses, calculate_category_trends,
-    calculate_daily_spending, get_top_spending_categories,
-    calculate_mom_changes, calculate_average_spending,
-    get_upcoming_recurring_payments, predict_next_month_spending,
-    export_to_csv, get_text
-)
-from utils.analytics import (
-    analyze_spending_patterns, forecast_spending,
-    analyze_category_correlations, get_spending_insights
+    format_currency, get_text, prepare_transaction_data,
+    calculate_monthly_totals, calculate_monthly_income_expenses,
+    calculate_category_trends, calculate_daily_spending,
+    get_top_spending_categories, calculate_mom_changes,
+    calculate_average_spending, predict_next_month_spending,
+    prepare_export_data, export_to_csv
 )
 import logging
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 def render_dashboard():
+    """Render the financial dashboard."""
     st.subheader(get_text('dashboard.financial_dashboard'))
     
     try:
-        transaction_model = Transaction()
-        transactions = transaction_model.get_all_transactions()
-        
-        if not transactions:
-            st.info("No transactions found. Start by adding some transactions!")
-            return
-        
-        df = prepare_transaction_data(transactions)
-        
-        # Date range filter
+        # Date range selector
         col1, col2 = st.columns(2)
         with col1:
-            start_date = df['created_at'].min().date()
-            start_date = st.date_input(get_text('dashboard.from_date'), value=start_date)
+            from_date = st.date_input(get_text('dashboard.from_date'), value=datetime.now().date())
         with col2:
-            end_date = df['created_at'].max().date()
-            end_date = st.date_input(get_text('dashboard.to_date'), value=end_date)
-        
-        # Filter data based on date range
-        mask = (df['created_at'].dt.date >= start_date) & (df['created_at'].dt.date <= end_date)
-        filtered_df = df[mask]
-        
-        if filtered_df.empty:
-            st.warning("No transactions found for the selected date range.")
-            return
-
-        # Create tabs for different analyses
+            to_date = st.date_input(get_text('dashboard.to_date'), value=datetime.now().date())
+            
+        # Create tabs for different views
         tabs = st.tabs([
             get_text('analytics.overview'),
             get_text('analytics.income_vs_expenses'),
@@ -61,417 +37,173 @@ def render_dashboard():
             get_text('analytics.advanced_analytics')
         ])
         
+        # Get transaction data
+        transaction = Transaction()
+        transactions = transaction.get_all_transactions()
+        
+        if not transactions:
+            st.info(get_text('error.no_transactions'))
+            return
+            
+        # Prepare data
+        df = prepare_transaction_data(transactions)
+        
+        # Filter by date range
+        mask = (df['created_at'].dt.date >= from_date) & (df['created_at'].dt.date <= to_date)
+        df_filtered = df[mask]
+        
+        if df_filtered.empty:
+            st.warning(get_text('error.no_data_range'))
+            return
+            
         # Overview Tab
         with tabs[0]:
-            render_overview_tab(filtered_df)
-        
+            render_overview_tab(df_filtered)
+            
         # Income vs Expenses Tab
         with tabs[1]:
-            render_income_expenses_tab(filtered_df)
-        
+            render_income_expenses_tab(df_filtered)
+            
         # Category Analysis Tab
         with tabs[2]:
-            render_category_analysis_tab(filtered_df)
-        
+            render_category_analysis_tab(df_filtered)
+            
         # Spending Patterns Tab
         with tabs[3]:
-            render_spending_patterns_tab(filtered_df)
-        
+            render_spending_patterns_tab(df_filtered)
+            
         # Insights & Forecasting Tab
         with tabs[4]:
-            render_insights_forecasting_tab(filtered_df)
-        
+            render_insights_tab(df_filtered)
+            
         # Advanced Analytics Tab
         with tabs[5]:
-            render_advanced_analytics_tab(filtered_df)
-        
-        # Export functionality
-        st.divider()
-        st.subheader(get_text('dashboard.export_data'))
-        if st.download_button(
-            get_text('dashboard.download_csv'),
-            data=export_to_csv(filtered_df),
-            file_name="transactions.csv",
-            mime="text/csv",
-        ):
-            st.success(get_text('dashboard.download_success'))
+            render_advanced_analytics_tab(df_filtered)
             
     except Exception as e:
         logger.error(f"Error rendering dashboard: {str(e)}")
-        st.error("An error occurred while loading the dashboard. Please try again later or contact support if the problem persists.")
+        st.error(get_text('error.loading_dashboard'))
 
-def render_overview_tab(df):
-    """Render overview metrics and charts."""
-    # Summary metrics
+def calculate_monthly_totals(df: pd.DataFrame) -> pd.Series:
+    """Calculate monthly transaction totals."""
+    if df.empty:
+        return pd.Series()
+    monthly = df.set_index('created_at').resample('M')['amount'].sum()
+    return monthly
+
+def calculate_monthly_income_expenses(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate monthly income and expenses."""
+    if df.empty:
+        return pd.DataFrame(columns=['Income', 'Expenses'])
+    monthly = df.set_index('created_at').groupby([pd.Grouper(freq='M'), 'type'])['amount'].sum()
+    monthly = monthly.unstack(fill_value=0)
+    monthly.columns = ['Income' if x == 'income' else 'Expenses' for x in monthly.columns]
+    return monthly
+
+def render_overview_tab(df: pd.DataFrame):
+    """Render overview section."""
+    # Calculate totals
+    total_income = df[df['type'] == 'income']['amount'].sum()
+    total_expenses = df[df['type'] == 'expense']['amount'].sum()
+    current_balance = total_income - total_expenses
+    
+    # Display metrics
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        total_income = df[df['type'] == 'income']['amount'].sum()
         st.metric(get_text('dashboard.total_income'), format_currency(total_income))
-    
     with col2:
-        total_expenses = df[df['type'] == 'expense']['amount'].sum()
         st.metric(get_text('dashboard.total_expenses'), format_currency(total_expenses))
-    
     with col3:
-        balance = total_income - total_expenses
-        st.metric(get_text('dashboard.current_balance'), format_currency(balance))
+        st.metric(get_text('dashboard.current_balance'), format_currency(current_balance))
     
-    # Monthly trend
+    # Monthly trend chart
     st.subheader(get_text('dashboard.monthly_trend'))
-    monthly_data = calculate_monthly_totals(df)
-    
-    if len(monthly_data) > 0:
-        x_values = list(monthly_data.keys())
-        y_values = list(monthly_data.values())
-        
-        fig = px.line(
-            x=x_values,
-            y=y_values,
-            labels={
-                "x": get_text('analytics.month'),
-                "y": get_text('analytics.amount')
-            },
-            title=get_text('dashboard.monthly_trend')
-        )
-        fig.update_layout(yaxis_title=get_text('analytics.amount'))
+    monthly_totals = calculate_monthly_totals(df)
+    if not monthly_totals.empty:
+        fig = px.line(monthly_totals, title=get_text('dashboard.monthly_trend'))
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Not enough data to show monthly trends.")
 
-def render_income_expenses_tab(df):
+def render_income_expenses_tab(df: pd.DataFrame):
     """Render income vs expenses analysis."""
-    st.subheader(get_text('analytics.income_vs_expenses'))
+    st.subheader(get_text('analytics.monthly_income_expenses'))
     
-    # Monthly income vs expenses
-    monthly_ie = calculate_monthly_income_expenses(df)
-    if not monthly_ie.empty and len(monthly_ie) > 0:
-        # Rename columns to match the expected names
-        monthly_ie.columns = ['Income', 'Expenses']
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=monthly_ie.index,
-            y=monthly_ie['Income'],
-            name=get_text('analytics.income'),
-            marker_color='green'
-        ))
-        fig.add_trace(go.Bar(
-            x=monthly_ie.index,
-            y=monthly_ie['Expenses'],
-            name=get_text('analytics.expenses'),
-            marker_color='red'
-        ))
+    monthly_data = calculate_monthly_income_expenses(df)
+    if not monthly_data.empty:
+        fig = px.bar(monthly_data, barmode='group')
         fig.update_layout(
-            title=get_text('analytics.monthly_income_expenses'),
-            barmode='group',
             xaxis_title=get_text('analytics.month'),
             yaxis_title=get_text('analytics.amount')
         )
         st.plotly_chart(fig, use_container_width=True)
-        
-        # Net income trend
-        net_income = monthly_ie['Income'] - monthly_ie['Expenses']
-        if len(net_income) > 0:
-            fig = px.line(
-                x=net_income.index,
-                y=net_income.values,
-                title=get_text('analytics.net_income_trend'),
-                labels={
-                    "x": get_text('analytics.month'),
-                    "y": get_text('analytics.net_income')
-                }
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Not enough data to show income vs expenses analysis.")
 
-def render_category_analysis_tab(df):
-    """Render category-wise analysis."""
+def render_category_analysis_tab(df: pd.DataFrame):
+    """Render category analysis."""
     st.subheader(get_text('analytics.category_analysis'))
     
-    expense_df = df[df['type'] == 'expense']
-    if not expense_df.empty:
-        # Pie chart for overall category distribution
-        category_data = expense_df.groupby('category')['amount'].sum()
-        if len(category_data) > 0:
-            fig = px.pie(
-                values=category_data.values,
-                names=category_data.index,
-                title=get_text('analytics.category_analysis')
+    if not df[df['type'] == 'expense'].empty:
+        # Category trends over time
+        category_trends = calculate_category_trends(df)
+        if not category_trends.empty:
+            fig = px.line(category_trends)
+            fig.update_layout(
+                xaxis_title=get_text('analytics.month'),
+                yaxis_title=get_text('analytics.amount')
             )
             st.plotly_chart(fig, use_container_width=True)
-            
-            # Category trends over time
-            category_trends = calculate_category_trends(df)
-            if not category_trends.empty:
-                fig = px.line(
-                    category_trends,
-                    title=get_text('analytics.category_analysis'),
-                    labels={"value": get_text('analytics.amount')}
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Not enough data to show category trends over time.")
-            
-            # Category correlations
-            correlations = analyze_category_correlations(df)
-            if correlations and 'strongest_positive' in correlations:
-                st.subheader(get_text('analytics.category_analysis'))
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("Strongest Positive Correlations")
-                    for (cat1, cat2), corr in correlations['strongest_positive'].items():
-                        st.write(f"- {cat1} & {cat2}: {corr:.2f}")
-                with col2:
-                    st.write("Strongest Negative Correlations")
-                    for (cat1, cat2), corr in correlations['strongest_negative'].items():
-                        st.write(f"- {cat1} & {cat2}: {corr:.2f}")
-    else:
-        st.info("No expense transactions found in the selected date range.")
 
-def render_spending_patterns_tab(df):
+def render_spending_patterns_tab(df: pd.DataFrame):
     """Render spending patterns analysis."""
     st.subheader(get_text('analytics.spending_patterns'))
     
-    # Get spending patterns analysis
-    patterns = analyze_spending_patterns(df)
-    
-    if patterns:
-        # Weekly pattern
-        if patterns.get('weekly_pattern'):
-            days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            values = [patterns['weekly_pattern'].get(i, 0) for i in range(7)]
-            
-            fig = px.bar(
-                x=days,
-                y=values,
-                title=get_text('analytics.spending_patterns'),
-                labels={
-                    "x": "Day",
-                    "y": get_text('analytics.amount')
-                }
-            )
+    if not df[df['type'] == 'expense'].empty:
+        # Daily spending pattern
+        daily_spending = calculate_daily_spending(df)
+        if not daily_spending.empty:
+            fig = px.line(daily_spending, title=get_text('analytics.spending_behavior'))
             st.plotly_chart(fig, use_container_width=True)
-            
-        # Monthly pattern
-        if patterns.get('monthly_trend'):
-            monthly_data = patterns['monthly_trend']
-            fig = px.line(
-                x=list(monthly_data.keys()),
-                y=list(monthly_data.values()),
-                title=get_text('analytics.spending_patterns'),
-                labels={
-                    "x": get_text('analytics.month'),
-                    "y": get_text('analytics.amount')
-                }
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-        # Seasonal patterns
-        if patterns.get('high_spending_months'):
-            st.subheader(get_text('analytics.spending_patterns'))
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("High Spending Months")
-                for month, amount in patterns['high_spending_months'].items():
-                    st.write(f"- {datetime.strptime(str(month), '%m').strftime('%B')}: {format_currency(amount)}")
-            with col2:
-                st.write("Low Spending Months")
-                for month, amount in patterns['low_spending_months'].items():
-                    st.write(f"- {datetime.strptime(str(month), '%m').strftime('%B')}: {format_currency(amount)}")
-    else:
-        st.info("Not enough data to analyze spending patterns.")
 
-def render_insights_forecasting_tab(df):
-    """Render insights and forecasting analysis."""
+def render_insights_tab(df: pd.DataFrame):
+    """Render insights and forecasting."""
     st.subheader(get_text('analytics.insights_forecasting'))
     
-    # Get spending insights
-    insights = get_spending_insights(df)
-    
-    if insights:
-        # Overall metrics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric(get_text('analytics.expenses'), format_currency(insights['total_spending']))
-        with col2:
-            st.metric("Average Transaction", format_currency(insights['avg_transaction']))
-        with col3:
-            last_trend = list(insights['spending_trend'].values())[-1] if insights['spending_trend'] else 0
-            st.metric("Monthly Change", f"{last_trend*100:.1f}%")
-        
-        # Unusual transactions
-        if insights.get('unusual_transactions'):
-            st.subheader("Unusual Transactions")
-            for tx in insights['unusual_transactions']:
-                st.write(f"- {tx['description']}: {format_currency(tx['amount'])} ({tx['category']})")
-        
-        # Category insights
-        st.subheader(get_text('analytics.category_analysis'))
-        for category, stats in insights['category_breakdown'].items():
-            with st.expander(f"{category} - {format_currency(stats['sum'])}"):
-                st.write(f"- Average transaction: {format_currency(stats['mean'])}")
-                st.write(f"- Number of transactions: {int(stats['count'])}")
-                
-        # Spending forecast
-        st.subheader(get_text('analytics.insights_forecasting'))
-        forecast_data = forecast_spending(df)
-        
-        if 'error' not in forecast_data:
-            forecast_df = pd.DataFrame({
-                'Forecast': forecast_data['forecast'],
-                'Lower Bound': forecast_data['lower_bound'],
-                'Upper Bound': forecast_data['upper_bound']
-            })
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=forecast_df.index,
-                y=forecast_df['Forecast'],
-                name='Forecast',
-                line=dict(color='blue')
-            ))
-            fig.add_trace(go.Scatter(
-                x=forecast_df.index,
-                y=forecast_df['Upper Bound'],
-                name='Upper Bound',
-                line=dict(dash='dash', color='red')
-            ))
-            fig.add_trace(go.Scatter(
-                x=forecast_df.index,
-                y=forecast_df['Lower Bound'],
-                name='Lower Bound',
-                line=dict(dash='dash', color='green')
-            ))
-            
-            fig.update_layout(
-                title=get_text('analytics.insights_forecasting'),
-                xaxis_title=get_text('analytics.month'),
-                yaxis_title=get_text('analytics.amount')
+    if not df.empty:
+        # Top spending categories
+        top_categories = get_top_spending_categories(df)
+        if top_categories:
+            fig = px.pie(
+                values=list(top_categories.values()),
+                names=list(top_categories.keys()),
+                title=get_text('analytics.category_analysis')
             )
             st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Not enough historical data for forecasting.")
-    else:
-        st.info("Not enough data to generate insights.")
+        
+        # Month-over-month changes
+        mom_changes = calculate_mom_changes(df)
+        if mom_changes:
+            st.metric(
+                get_text('analytics.trend_analysis'),
+                f"{mom_changes['last_month_change']*100:.1f}%"
+            )
 
-def render_advanced_analytics_tab(df):
-    """Render advanced analytics and detailed insights."""
+def render_advanced_analytics_tab(df: pd.DataFrame):
+    """Render advanced analytics."""
     st.subheader(get_text('analytics.advanced_analytics'))
     
-    # Create subtabs for different types of analysis
-    subtabs = st.tabs(["Trend Analysis", "Spending Behavior", "Pattern Recognition"])
-    
-    with subtabs[0]:
-        st.write("### Trend Analysis")
+    if not df.empty:
+        # Average spending metrics
+        averages = calculate_average_spending(df)
+        if averages:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Daily Average", format_currency(averages['daily_average']))
+            with col2:
+                st.metric("Monthly Average", format_currency(averages['monthly_average']))
         
-        # Cumulative spending trend
-        expense_df = df[df['type'] == 'expense'].copy()
-        if not expense_df.empty:
-            expense_df['cumulative_sum'] = expense_df.sort_values('created_at')['amount'].cumsum()
-            
-            fig = px.line(
-                expense_df,
-                x='created_at',
-                y='cumulative_sum',
-                title="Cumulative Spending Over Time",
-                labels={
-                    "cumulative_sum": get_text('analytics.amount'),
-                    "created_at": get_text('analytics.month')
-                }
+        # Spending forecast
+        forecast = predict_next_month_spending(df)
+        if forecast:
+            st.metric(
+                "Next Month Forecast",
+                format_currency(forecast['predicted_amount'])
             )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Moving averages
-            expense_df.set_index('created_at', inplace=True)
-            daily_spending = expense_df.resample('D')['amount'].sum().fillna(0)
-            
-            ma_7 = daily_spending.rolling(window=7).mean()
-            ma_30 = daily_spending.rolling(window=30).mean()
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=daily_spending.index, y=daily_spending.values, name='Daily'))
-            fig.add_trace(go.Scatter(x=ma_7.index, y=ma_7.values, name='7-day MA'))
-            fig.add_trace(go.Scatter(x=ma_30.index, y=ma_30.values, name='30-day MA'))
-            
-            fig.update_layout(
-                title="Spending Trends with Moving Averages",
-                xaxis_title=get_text('analytics.month'),
-                yaxis_title=get_text('analytics.amount')
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-    with subtabs[1]:
-        st.write("### Spending Behavior Analysis")
-        
-        # Transaction size distribution
-        if not expense_df.empty:
-            fig = px.histogram(
-                expense_df,
-                x='amount',
-                nbins=50,
-                title="Transaction Size Distribution",
-                labels={"amount": get_text('analytics.amount')}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Spending by day of week and hour
-            expense_df['day_of_week'] = expense_df.index.dayofweek
-            expense_df['hour'] = expense_df.index.hour
-            
-            pivot_table = expense_df.pivot_table(
-                values='amount',
-                index='day_of_week',
-                columns='hour',
-                aggfunc='sum',
-                fill_value=0
-            )
-            
-            fig = px.imshow(
-                pivot_table,
-                labels=dict(x="Hour of Day", y="Day of Week", color=get_text('analytics.amount')),
-                x=[str(i).zfill(2) + ":00" for i in range(24)],
-                y=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                title="Spending Heatmap by Day and Hour"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-    with subtabs[2]:
-        st.write("### Pattern Recognition")
-        
-        # Category sequence analysis
-        expense_df = expense_df.sort_values('created_at')
-        category_sequence = expense_df['category'].tolist()
-        
-        if len(category_sequence) >= 2:
-            transitions = {}
-            for i in range(len(category_sequence)-1):
-                current = category_sequence[i]
-                next_cat = category_sequence[i+1]
-                
-                if current not in transitions:
-                    transitions[current] = {}
-                if next_cat not in transitions[current]:
-                    transitions[current][next_cat] = 0
-                transitions[current][next_cat] += 1
-            
-            st.write("#### Common Spending Sequences")
-            for cat, next_cats in transitions.items():
-                total = sum(next_cats.values())
-                most_common = sorted(next_cats.items(), key=lambda x: x[1], reverse=True)[0]
-                pct = (most_common[1] / total) * 100
-                if pct >= 20:  # Only show strong patterns
-                    st.write(f"- After spending in '{cat}', there's a {pct:.1f}% chance of spending in '{most_common[0]}'")
-            
-            # Periodic spending detection
-            daily_totals = expense_df.resample('D')['amount'].sum().fillna(0)
-            acf = pd.Series(daily_totals).autocorr(lag=7)  # Weekly correlation
-            
-            if abs(acf) > 0.3:  # Strong weekly pattern
-                st.write("#### Periodic Spending Detected")
-                st.write(f"- Weekly spending pattern strength: {abs(acf)*100:.1f}%")
-                if acf > 0:
-                    st.write("- Spending tends to follow a weekly cycle")
-                else:
-                    st.write("- Spending tends to alternate between high and low weeks")

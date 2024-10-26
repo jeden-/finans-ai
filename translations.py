@@ -108,6 +108,12 @@ TRANSLATIONS = {
             'error': 'Error',
             'no_category': 'Please select a category'
         },
+        'error': {
+            'loading_dashboard': 'An error occurred while loading the dashboard. Please try again later or contact support if the problem persists.',
+            'no_transactions': 'No transactions found. Start by adding some transactions!',
+            'no_data_range': 'No transactions found for the selected date range.',
+            'no_categories': 'No categories found. Add some transactions first to create categories.'
+        },
         'transaction': {
             'example_formats': 'Example formats:',
             'description_help': 'Enter transaction description including the amount in Polish currency format (e.g., 20zł, 100 PLN, 50 złotych)',
@@ -115,19 +121,7 @@ TRANSLATIONS = {
             'processing': 'Processing transaction...',
             'success': 'Transaction analyzed successfully!',
             'error': 'Could not process the transaction. Please try again.'
-        },
-        'error': {
-            'loading_dashboard': 'An error occurred while loading the dashboard. Please try again later or contact support if the problem persists.',
-            'no_transactions': 'No transactions found. Start by adding some transactions!',
-            'no_data_range': 'No transactions found for the selected date range.'
-        },
-        'transaction_management': {
-            'title': 'Manage Transactions',
-            'no_transactions': 'No transactions found. Start by adding some transactions!'
-        },
-        'weekdays': [
-            'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-        ]
+        }
     },
     'pl': {
         'app': {
@@ -238,6 +232,12 @@ TRANSLATIONS = {
             'error': 'Błąd',
             'no_category': 'Proszę wybrać kategorię'
         },
+        'error': {
+            'loading_dashboard': 'Wystąpił błąd podczas ładowania panelu. Spróbuj ponownie później lub skontaktuj się z pomocą techniczną.',
+            'no_transactions': 'Nie znaleziono transakcji. Zacznij od dodania kilku transakcji!',
+            'no_data_range': 'Nie znaleziono transakcji dla wybranego zakresu dat.',
+            'no_categories': 'Nie znaleziono kategorii. Dodaj najpierw transakcje, aby utworzyć kategorie.'
+        },
         'transaction': {
             'example_formats': 'Przykładowe formaty:',
             'description_help': 'Wprowadź opis transakcji wraz z kwotą w polskim formacie waluty (np. 20zł, 100 PLN, 50 złotych)',
@@ -245,18 +245,6 @@ TRANSLATIONS = {
             'processing': 'Przetwarzanie transakcji...',
             'success': 'Transakcja przeanalizowana pomyślnie!',
             'error': 'Nie udało się przetworzyć transakcji. Spróbuj ponownie.'
-        },
-        'error': {
-            'loading_dashboard': 'Wystąpił błąd podczas ładowania panelu. Spróbuj ponownie później lub skontaktuj się z pomocą techniczną.',
-            'no_transactions': 'Nie znaleziono transakcji. Zacznij od dodania kilku transakcji!',
-            'no_data_range': 'Nie znaleziono transakcji dla wybranego zakresu dat.'
-        },
-        'transaction_management': {
-            'title': 'Zarządzaj transakcjami',
-            'no_transactions': 'Nie znaleziono transakcji. Zacznij od dodania kilku transakcji!'
-        },
-        'weekdays': [
-            'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'
-        ]
+        }
     }
 }
