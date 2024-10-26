@@ -149,6 +149,33 @@ def predict_next_month_spending(df: pd.DataFrame) -> Dict[str, float]:
     last_3_months = monthly_totals.tail(3).mean()
     return {'predicted_amount': last_3_months}
 
-def export_to_csv(df: pd.DataFrame) -> str:
+def prepare_export_data(df: pd.DataFrame) -> pd.DataFrame:
+    '''Prepare transaction data for export.'''
+    export_df = df.copy()
+    # Format dates
+    if not export_df.empty:
+        # Format date columns if they exist
+        if 'created_at' in export_df.columns:
+            export_df['created_at'] = export_df['created_at'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        if 'start_date' in export_df.columns:
+            export_df['start_date'] = pd.to_datetime(export_df['start_date']).dt.strftime('%Y-%m-%d')
+        if 'end_date' in export_df.columns:
+            export_df['end_date'] = pd.to_datetime(export_df['end_date']).dt.strftime('%Y-%m-%d')
+        if 'due_date' in export_df.columns:
+            export_df['due_date'] = pd.to_datetime(export_df['due_date']).dt.strftime('%Y-%m-%d')
+        # Format amounts
+        if 'amount' in export_df.columns:
+            export_df['amount'] = export_df['amount'].map(lambda x: f'{float(x):.2f}')
+    return export_df
+
+def export_to_csv(df: pd.DataFrame) -> bytes:
     """Export DataFrame to CSV format."""
     return df.to_csv(index=False).encode('utf-8')
+
+def export_to_excel(df: pd.DataFrame) -> bytes:
+    '''Export DataFrame to Excel format.'''
+    import io
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    return output.getvalue()
