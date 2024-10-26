@@ -95,6 +95,19 @@ TRANSLATIONS = {
             'hour_of_day': 'Hour of Day',
             'day_of_week': 'Day of Week'
         },
+        'common': {
+            'description': 'Description',
+            'amount': 'Amount',
+            'type': 'Type',
+            'category': 'Category',
+            'cycle': 'Cycle',
+            'save': 'Save',
+            'delete': 'Delete',
+            'confirm': 'Confirm',
+            'success': 'Success!',
+            'error': 'Error',
+            'no_category': 'Please select a category'
+        },
         'transaction': {
             'example_formats': 'Example formats:',
             'description_help': 'Enter transaction description including the amount in Polish currency format (e.g., 20zł, 100 PLN, 50 złotych)',
@@ -107,6 +120,10 @@ TRANSLATIONS = {
             'loading_dashboard': 'An error occurred while loading the dashboard. Please try again later or contact support if the problem persists.',
             'no_transactions': 'No transactions found. Start by adding some transactions!',
             'no_data_range': 'No transactions found for the selected date range.'
+        },
+        'transaction_management': {
+            'title': 'Manage Transactions',
+            'no_transactions': 'No transactions found. Start by adding some transactions!'
         },
         'weekdays': [
             'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
@@ -208,6 +225,19 @@ TRANSLATIONS = {
             'hour_of_day': 'Godzina',
             'day_of_week': 'Dzień tygodnia'
         },
+        'common': {
+            'description': 'Opis',
+            'amount': 'Kwota',
+            'type': 'Typ',
+            'category': 'Kategoria',
+            'cycle': 'Cykl',
+            'save': 'Zapisz',
+            'delete': 'Usuń',
+            'confirm': 'Potwierdź',
+            'success': 'Sukces!',
+            'error': 'Błąd',
+            'no_category': 'Proszę wybrać kategorię'
+        },
         'transaction': {
             'example_formats': 'Przykładowe formaty:',
             'description_help': 'Wprowadź opis transakcji wraz z kwotą w polskim formacie waluty (np. 20zł, 100 PLN, 50 złotych)',
@@ -217,9 +247,13 @@ TRANSLATIONS = {
             'error': 'Nie udało się przetworzyć transakcji. Spróbuj ponownie.'
         },
         'error': {
-            'loading_dashboard': 'Wystąpił błąd podczas ładowania panelu. Spróbuj ponownie później lub skontaktuj się z pomocą techniczną, jeśli problem będzie się powtarzał.',
+            'loading_dashboard': 'Wystąpił błąd podczas ładowania panelu. Spróbuj ponownie później lub skontaktuj się z pomocą techniczną.',
             'no_transactions': 'Nie znaleziono transakcji. Zacznij od dodania kilku transakcji!',
             'no_data_range': 'Nie znaleziono transakcji dla wybranego zakresu dat.'
+        },
+        'transaction_management': {
+            'title': 'Zarządzaj transakcjami',
+            'no_transactions': 'Nie znaleziono transakcji. Zacznij od dodania kilku transakcji!'
         },
         'weekdays': [
             'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'
