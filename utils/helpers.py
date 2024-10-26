@@ -26,4 +26,25 @@ def get_text(key: str, language: str = None) -> str:
             current = current[section]
         return current
 
-[Previous helper functions remain unchanged...]
+def format_currency(amount):
+    """Format amount in PLN currency format."""
+    if amount is None:
+        return "0.00 PLN"
+    return f"{float(amount):,.2f} PLN"
+
+def prepare_transaction_data(transactions):
+    """Prepare transaction data for analysis."""
+    df = pd.DataFrame(transactions)
+    df['created_at'] = pd.to_datetime(df['created_at'])
+    return df
+
+def calculate_monthly_totals(df):
+    """Calculate monthly transaction totals."""
+    monthly = df.set_index('created_at').resample('M')['amount'].sum()
+    return monthly.to_dict()
+
+def calculate_monthly_income_expenses(df):
+    """Calculate monthly income and expenses."""
+    monthly = df.set_index('created_at').groupby([pd.Grouper(freq='M'), 'type'])['amount'].sum().unstack()
+    monthly.columns = ['Income' if x == 'income' else 'Expenses' for x in monthly.columns]
+    return monthly
